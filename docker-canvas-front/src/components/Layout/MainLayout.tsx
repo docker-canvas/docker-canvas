@@ -1,7 +1,7 @@
 import React from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import Canvas from '../Canvas/Canvas';
-import Sidebar from './Sidbar';
+import Sidebar from './Sidebar';
 
 interface MainLayoutProps {
   children?: React.ReactNode;

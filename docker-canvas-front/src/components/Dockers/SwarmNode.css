@@ -1,0 +1,77 @@
+/**
+ * SwarmNode 컴포넌트 스타일
+ * 
+ * Docker Swarm 노드 컴포넌트의 시각적 스타일을 정의합니다.
+ */
+
+/* 노드 컨테이너 기본 스타일 */
+.swarm-node {
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 노드 선택 시 스타일 */
+  .swarm-node.selected {
+    box-shadow: 0 0 0 2px #3182ce, 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* 노드 호버 효과 */
+  .swarm-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Manager 노드 스타일 */
+  .swarm-node.manager {
+    background: linear-gradient(to bottom, #1a4f72, #0c2e44);
+  }
+  
+  /* Worker 노드 스타일 */
+  .swarm-node.worker {
+    background: linear-gradient(to bottom, #3182ce, #2c5282);
+  }
+  
+  /* 핸들 스타일 */
+  .swarm-node .react-flow__handle {
+    width: 8px;
+    height: 8px;
+    background-color: #e2e8f0;
+    border: 2px solid #4a5568;
+  }
+  
+  /* 노드 상태 표시기 */
+  .swarm-node .status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+  
+  /* 노드 내용 컨테이너 */
+  .swarm-node .content {
+    padding: 0.5rem;
+  }
+  
+  /* 노드 호스트명 */
+  .swarm-node .hostname {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* 네트워크 인터페이스 정보 */
+  .swarm-node .network-info {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  /* 라벨 스타일 */
+  .swarm-node .label {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin-right: 0.25rem;
+  }
