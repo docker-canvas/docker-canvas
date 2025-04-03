@@ -4,10 +4,11 @@ interface ToolBarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onPanMode: () => void;
+  onRefresh: () => void;
   activeMode: string;
 }
 
-const ToolBar: React.FC<ToolBarProps> = ({ onZoomIn, onZoomOut, onPanMode, activeMode }) => {
+const ToolBar: React.FC<ToolBarProps> = ({ onZoomIn, onZoomOut, onPanMode, onRefresh, activeMode }) => {
   return (
     <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-full shadow-md flex items-center px-2 py-1 border border-gray-200">
       <button
@@ -46,6 +47,19 @@ const ToolBar: React.FC<ToolBarProps> = ({ onZoomIn, onZoomOut, onPanMode, activ
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
           <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+      </button>
+      
+      <button
+        className={`p-2 mx-1 rounded-full transition-colors hover:bg-gray-100`}
+        title="Refresh"
+        onClick={onRefresh}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 2v6h-6"></path>
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+          <path d="M3 22v-6h6"></path>
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
         </svg>
       </button>
     </div>

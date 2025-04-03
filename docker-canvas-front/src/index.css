@@ -53,3 +53,217 @@ body {
 .bg-host-yellow {
   background-color: #ffefc0;
 }
+
+.react-flow__edge-path {
+  stroke-width: 3;
+  stroke: #555;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #000;
+  stroke-width: 4;
+}
+
+/* index.css에 추가할 스타일 */
+
+/* 네트워크 유형별 배경색 */
+.bg-container-blue {
+  background-color: #b8d8f8;
+}
+
+.bg-network-green {
+  background-color: #c4f0c4;
+}
+
+.bg-host-yellow {
+  background-color: #ffefc0;
+}
+
+.bg-overlay-network {
+  background-color: #d1f7c4;
+}
+
+.bg-external-network {
+  background-color: #e6e6e6;
+}
+
+/* 인터페이스 호버 효과 */
+.network-interface:hover {
+  transform: scale(1.2);
+  z-index: 10;
+}
+
+/* 엣지 스타일 */
+.react-flow__edge-path {
+  stroke-width: 2;
+  stroke: #555;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #000;
+  stroke-width: 3;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5,5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+}
+
+/* 네트워크 인터페이스 스타일 */
+.interface-connector {
+  position: relative;
+}
+
+.interface-connector::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+}
+
+/* Docker Swarm 시각화를 위한 추가 스타일 */
+
+/* 오버레이 네트워크 스타일 */
+.bg-overlay-network {
+  background-color: #d1f7c4;
+}
+
+/* gwbridge 네트워크 스타일 */
+.bg-gwbridge {
+  background-color: #e6f7d4;
+}
+
+/* 외부 네트워크 스타일 */
+.bg-external-network {
+  background-color: #e6e6e6;
+}
+
+/* Swarm 서비스 컨테이너 스타일 */
+.swarm-service-container {
+  position: relative;
+}
+
+.swarm-service-container::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  left: -2px;
+  bottom: -2px;
+  border: 2px dashed #4299e1;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+/* 인터페이스 연결선 애니메이션 */
+.react-flow__edge.swarm-connection .react-flow__edge-path {
+  stroke-dasharray: 5,5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+}
+
+/* 노드 역할 표시 */
+.node-role-manager {
+  position: relative;
+}
+
+.node-role-manager::before {
+  content: "M";
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: #4299e1;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  z-index: 10;
+}
+
+.node-role-worker {
+  position: relative;
+}
+
+.node-role-worker::before {
+  content: "W";
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: #68d391;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  z-index: 10;
+}
+
+/* 인터페이스 커넥터 스타일 */
+.interface-connector {
+  position: relative;
+}
+
+.interface-connector::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+}
