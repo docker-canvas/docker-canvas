@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';  // useState 추가
 import { Handle, Position } from 'reactflow';
 import { NodeData, NodeRole } from '../types/node';
 import './SwarmNode.css';
@@ -22,8 +22,12 @@ interface SwarmNodeProps {
  * - 노드에 배치된 컨테이너 수에 비례하여 너비가 조정됨
  * - 연결 핸들(Handle)을 통해 다른 노드와 연결 가능
  * - 노드 호스트명 및 상태 정보 표시
+ * - 호버 시 간결한 핵심 정보(호스트명, 상태, 역할) 표시
  */
 const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected }) => {
+  // 호버 상태 관리 추가
+  const [isHovered, setIsHovered] = useState(false);
+  
   // 노드 역할에 따른 스타일 계산
   const getRoleStyles = (role: NodeRole) => {
     // Manager는 더 진한 색상, Worker는 더 연한 색상
@@ -77,18 +81,13 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected }) => {
         color: 'white',
         overflow: 'hidden' // 내용이 넘칠 경우 숨김 처리
       }}
+      onMouseEnter={() => setIsHovered(true)}  // 마우스 진입 시 호버 상태 true
+      onMouseLeave={() => setIsHovered(false)} // 마우스 이탈 시 호버 상태 false
     >
 
       {/* 노드 내용 */}
       <div className="flex flex-col content" style={{ height: 'calc(100% - 16px)' }}>
-        {/* 노드 헤더 */}
-        <div className="flex justify-between items-center mb-2">
-          <div className="font-bold text-lg hostname">{data.hostname}</div>
-          <div className="flex items-center">
-            <span className={`status-indicator ${getStatusIndicatorStyle()}`}></span>
-            <span className="text-sm">{data.status || 'Unknown'}</span>
-          </div>
-        </div>
+    
 
         {/* 역할 표시 */}
         <div className="mb-2 text-sm">
@@ -97,21 +96,17 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected }) => {
           </span>
         </div>
 
-        {/* 네트워크 인터페이스 정보 */}
-        <div className="text-sm text-gray-100 mt-2 network-info overflow-auto" style={{ maxHeight: '70px' }}>
-          <div className="flex flex-col">
-            {data.networkInterfaces.map((iface, index) => (
-              <div key={index} className="text-xs">
-                {iface.name}: {iface.address}
-              </div>
-            ))}
+        {/* 호버 시 보여줄 정보 */}
+        {isHovered && (
+          <div className="hover-info bg-gray-800 bg-opacity-80 absolute inset-0 flex flex-col items-center justify-center p-4 transition-opacity duration-200">
+            <h3 className="text-xl font-bold mb-2">{data.hostname}</h3>
+            <div className="flex items-center mb-2">
+              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${getStatusIndicatorStyle()}`}></span>
+              <span>{data.status || 'Unknown'}</span>
+            </div>
+            <div className="text-lg">역할: {data.role}</div>
           </div>
-        </div>
-
-        {/* 컨테이너 수 표시 */}
-        <div className="mt-auto text-xs text-right">
-          컨테이너: {data.containerCount}개
-        </div>
+        )}
       </div>
 
     </div>
