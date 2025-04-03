@@ -1,54 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { ReactFlowProvider } from 'reactflow';
-import Canvas from './components/Canvas/Canvas';
-import { DockerApiService } from './services/api';
-import { DockerContainer, DockerNetwork, HostMachine } from './types/docker.types';
+import React, { useState } from 'react';
+import MainLayout from './components/Layout/MainLayout';
 import './index.css';
 
+/**
+ * App 컴포넌트
+ * 
+ * 애플리케이션의 루트 컴포넌트로, 전체 앱의 상태를 관리하고
+ * 메인 레이아웃을 렌더링합니다.
+ * 
+ * 현재는 최소한의 기능만 포함하고 있으며, 필요에 따라 추가 기능을
+ * 점진적으로 구현할 예정입니다.
+ */
 const App: React.FC = () => {
-  const [containers, setContainers] = useState<DockerContainer[]>([]);
-  const [networks, setNetworks] = useState<DockerNetwork[]>([]);
-  const [hosts, setHosts] = useState<HostMachine[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [useTestMode, setUseTestMode] = useState(true); // 기본적으로 테스트 모드 사용
-
-  // Docker API에서 데이터 로드
-  const loadInfrastructureData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      if (useTestMode) {
-        // 테스트 모드: 더미 데이터 사용
-        console.log("App: Loading test data");
-        const testData = DockerApiService.getTestData();
-        console.log("App: Test data loaded:", testData);
-        setContainers(testData.containers);
-        setNetworks(testData.networks);
-        setHosts(testData.hosts);
-      } else {
-        // 실제 API 호출
-        console.log("App: Loading data from API");
-        const data = await DockerApiService.getInfrastructure();
-        console.log("App: API data loaded:", data);
-        setContainers(data.containers);
-        setNetworks(data.networks);
-        setHosts(data.hosts);
-      }
-      
-    } catch (err) {
-      console.error('Error loading infrastructure data:', err);
-      setError('Failed to load Docker infrastructure data. Check console for details.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 컴포넌트 마운트 시 데이터 로드
-  useEffect(() => {
-    loadInfrastructureData();
-  }, [useTestMode]);
+  // 테스트 모드 상태 (실제 API 사용 여부)
+  const [useTestMode, setUseTestMode] = useState(true);
 
   // 테스트 모드 토글 핸들러
   const toggleTestMode = () => {
@@ -57,40 +22,23 @@ const App: React.FC = () => {
 
   return (
     <div className="App">
-      <header className="bg-gray-800 text-white p-4 shadow-md">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">Docker & Swarm 인프라 시각화</h1>
-          <div className="flex items-center">
-            <label className="inline-flex items-center cursor-pointer mr-4">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={useTestMode}
-                onChange={toggleTestMode}
-              />
-              <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              <span className="ml-2 text-sm font-medium text-white">테스트 모드</span>
-            </label>
-            {error && <div className="text-red-300 text-sm">{error}</div>}
-            {loading && !useTestMode && <div className="text-gray-300 text-sm">로딩 중...</div>}
-          </div>
-        </div>
-      </header>
+      <MainLayout>
+        {/* 추가 콘텐츠가 필요한 경우 여기에 배치 */}
+      </MainLayout>
       
-      <main className="flex-1 overflow-hidden h-screen">
-        <ReactFlowProvider>
-          <Canvas 
-            testMode={useTestMode}
-            containers={containers}
-            networks={networks}
-            hosts={hosts}
+      {/* 테스트 모드 토글 버튼 (우측 하단에 고정) */}
+      <div className="fixed bottom-16 right-4 flex items-center bg-white p-2 rounded-lg shadow-md z-30">
+        <label className="inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={useTestMode}
+            onChange={toggleTestMode}
           />
-        </ReactFlowProvider>
-      </main>
-      
-      <footer className="bg-gray-100 p-2 text-center text-sm text-gray-600 border-t fixed bottom-0 w-full">
-        <p>Docker Infrastructure Visualization Tool</p>
-      </footer>
+          <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          <span className="ml-2 text-sm font-medium">테스트 모드</span>
+        </label>
+      </div>
     </div>
   );
 };
