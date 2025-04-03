@@ -3,7 +3,6 @@ import ReactFlow, {
   Controls, 
   Background, 
   useNodesState, 
-  useEdgesState,
   useReactFlow,
   Node,
 } from 'reactflow';
@@ -13,6 +12,7 @@ import nodeTypes from '../types/nodeType';
 import { NodeData } from '../types/node';
 import { ContainerData } from '../types/container';
 import Container from '../Dockers/Container';
+import SwarmNode from '../Dockers/SwarmNode';
 
 /**
  * Canvas 컴포넌트
@@ -26,10 +26,19 @@ import Container from '../Dockers/Container';
  * - 캔버스 확대/축소, 이동 기능
  * - 캔버스 초기화 기능
  */
+
+const renderContainer = ({ data }: { data: ContainerData }) => {
+  return <Container data={data} />;
+};
+
+const customNodeTypes = {
+  swarmNode: SwarmNode,
+  container: renderContainer
+};
+
 const Canvas: React.FC = () => {
   // ReactFlow 노드와 엣지 상태 관리
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [activeMode, setActiveMode] = useState('hand');
   
   // ResizeObserver 오류 방지를 위한 초기화 상태 추가
@@ -37,7 +46,6 @@ const Canvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   const { zoomIn, zoomOut, fitView } = useReactFlow();
-  
   
   // 샘플 컨테이너 데이터 (실제로는 API에서 가져올 예정)
   const getSampleContainers = (nodeId: string, count: number): ContainerData[] => {
@@ -227,11 +235,6 @@ const Canvas: React.FC = () => {
     return <Container data={data} />;
   };
 
-  // 노드 타입 확장 (Container 노드 타입 추가)
-  const customNodeTypes = {
-    ...nodeTypes,
-    container: renderContainer
-  };
 
   return (
     <div className="w-full h-screen relative" ref={containerRef}>
@@ -245,15 +248,23 @@ const Canvas: React.FC = () => {
       <div className="react-flow-wrapper" style={{ width: '100%', height: '100%', position: 'relative' }}>
         <ReactFlow
           nodes={nodes}
-          edges={edges}
           onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
           nodeTypes={customNodeTypes}
           nodesDraggable={false}
           fitView={false} // 초기 fitView 비활성화, useEffect에서 수동으로 호출
           minZoom={0.1}
           maxZoom={2}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          onInit={(reactFlowInstance) => {
+            // ReactFlow가 완전히 초기화된 후 노드 설정
+            setTimeout(() => {
+              const layoutedNodes = layoutNodesAndContainers(sampleNodes);
+              setNodes(layoutedNodes);
+              setTimeout(() => {
+                reactFlowInstance.fitView({ padding: 0.2 });
+              }, 100);
+            }, 100);
+          }}
         >
           <Controls showInteractive={false} />
           <Background color="#aaa" gap={16} />
