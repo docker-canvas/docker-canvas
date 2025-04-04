@@ -1,0 +1,108 @@
+/**
+ * Network 컴포넌트 스타일
+ * 
+ * Docker 네트워크 컴포넌트의 시각적 스타일을 정의합니다.
+ */
+
+/* 네트워크 노드 기본 스타일 */
+.network-node {
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 네트워크 노드 선택 시 스타일 */
+  .network-node.selected {
+    box-shadow: 0 0 0 2px #3182ce, 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* 네트워크 노드 호버 효과 */
+  .network-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* External 네트워크 스타일 */
+  .network-node.external {
+    background: linear-gradient(to bottom, #6B46C1, #553C9A);
+  }
+  
+  /* Docker 내부 네트워크 스타일 */
+  .network-node.docker {
+    background: linear-gradient(to bottom, #38B2AC, #2C7A7B);
+  }
+  
+  /* Ingress 네트워크 스타일 */
+  .network-node.ingress {
+    background: linear-gradient(to bottom, #ED8936, #C05621);
+  }
+  
+  /* GWBridge 네트워크 스타일 */
+  .network-node.gwbridge {
+    background: linear-gradient(to bottom, #4299E1, #2B6CB0);
+  }
+  
+  /* 네트워크 핸들 스타일 */
+  .network-node .react-flow__handle {
+    width: 8px;
+    height: 8px;
+    background-color: #e2e8f0;
+    border: 2px solid #4a5568;
+  }
+  
+  /* 상태 표시기 */
+  .network-node .status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+  
+  /* 네트워크 내용 컨테이너 */
+  .network-node .content {
+    padding: 0.5rem;
+  }
+  
+  /* 네트워크 이름 */
+  .network-node .network-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* 네트워크 인터페이스 정보 */
+  .network-node .interface-info {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  /* 라벨 스타일 */
+  .network-node .label {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin-right: 0.25rem;
+  }
+  
+  /* 호버 정보 스타일 */
+  .network-node .hover-info {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    transition: opacity 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+  }
+  
+  .network-node:hover .hover-info {
+    opacity: 1;
+  }

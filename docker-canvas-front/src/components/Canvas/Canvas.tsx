@@ -9,10 +9,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import ToolBar from './ToolBar';
 import nodeTypes from '../types/nodeType';
-import { NodeData } from '../types/node';
-import { ContainerData } from '../types/container';
-import Container from '../Dockers/Container';
-import SwarmNode from '../Dockers/SwarmNode';
+import { sampleNodes, sampleNetworks } from '../data/sampleData';
+import { calculateLayout } from './layoutCalculator';
 
 /**
  * Canvas 컴포넌트
@@ -22,17 +20,14 @@ import SwarmNode from '../Dockers/SwarmNode';
  * 주요 기능:
  * - Docker Swarm 노드 표시 및 관리
  * - 각 노드의 위쪽에 컨테이너를 가로로 배치
+ * - 네트워크 요소들을 배치 규칙에 따라 표시
+ *   - External Network: 호스트 머신 전체 폭의 길이와 일치되게 상단에 배치
+ *   - Ingress Network: 컨테이너 집합 위에 배치, 전체 폭 일치
+ *   - GWBridge Network: 노드 위, 컨테이너 아래 배치, 노드 폭과 일치
  * - 노드 간 연결(엣지) 표시
  * - 캔버스 확대/축소, 이동 기능
  * - 캔버스 초기화 기능
  */
-
-
-const customNodeTypes = {
-  swarmNode: SwarmNode,
-  container: Container
-};
-
 const Canvas: React.FC = () => {
   // ReactFlow 노드와 엣지 상태 관리
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -44,160 +39,18 @@ const Canvas: React.FC = () => {
   
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   
-  // 샘플 컨테이너 데이터 (실제로는 API에서 가져올 예정)
-  const getSampleContainers = (nodeId: string, count: number): ContainerData[] => {
-    return Array.from({ length: count }, (_, i) => ({
-      id: `${nodeId}-container-${i+1}`,
-      name: `${nodeId.replace('node-', '')}-container-${i+1}`,
-      image: i % 3 === 0 ? 'nginx:latest' : (i % 3 === 1 ? 'redis:alpine' : 'postgres:13'),
-      status: i % 4 === 0 ? 'stopped' : 'running',
-      networks: [
-        {
-          name: i % 2 === 0 ? 'bridge' : 'docker_gwbridge',
-          driver: i % 2 === 0 ? 'bridge' : 'overlay',
-          ipAddress: `172.17.0.${10 + i}`
-        },
-        // 일부 컨테이너에는 추가 네트워크 연결
-        ...(i % 3 === 0 ? [{
-          name: 'app-network',
-          driver: 'overlay',
-          ipAddress: `10.0.0.${i+1}`
-        }] : [])
-      ],
-      ports: i % 2 === 0 ? [
-        { internal: 80, external: 8080 + i, protocol: 'tcp' }
-      ] : [],
-      createdAt: new Date(Date.now() - i * 86400000).toISOString()
-    }));
-  };
-  
-  // 샘플 노드 데이터 (실제로는 API에서 가져올 예정)
-  const sampleNodes: NodeData[] = [
-    {
-      id: 'node-1',
-      hostname: 'swarm-manager-01',
-      role: 'Manager',
-      networkInterfaces: [
-        { name: 'eth0', address: '192.168.1.10' }
-      ],
-      status: 'Ready',
-      containers: getSampleContainers('node-1', 5),
-      labels: {
-        'node.role': 'manager'
-      }
-    },
-    {
-      id: 'node-5',
-      hostname: 'swarm-manager-01',
-      role: 'Manager',
-      networkInterfaces: [
-        { name: 'eth0', address: '192.168.1.10' }
-      ],
-      status: 'Ready',
-      containers: [],
-      labels: {
-        'node.role': 'manager'
-      }
-    },
-    {
-      id: 'node-2',
-      hostname: 'swarm-worker-01',
-      role: 'Worker',
-      networkInterfaces: [
-        { name: 'eth0', address: '192.168.1.11' }
-      ],
-      status: 'Ready',
-      containers: getSampleContainers('node-2', 8),
-      labels: {
-        'node.role': 'worker'
-      }
-    },
-    {
-      id: 'node-3',
-      hostname: 'swarm-worker-02',
-      role: 'Worker',
-      networkInterfaces: [
-        { name: 'eth0', address: '192.168.1.12' }
-      ],
-      status: 'Down',
-      containers: getSampleContainers('node-3', 3),
-      labels: {
-        'node.role': 'worker'
-      }
-    }
-  ];
-  
-  
-  // 컨테이너 간격 및 크기 설정
-  const containerWidth = 120; // 컨테이너 너비
-  const containerGap = 10;    // 컨테이너 간격
-  const containerHeight = 30; // 컨테이너 높이
-  const containerTopMargin = 40; // 컨테이너와 노드 사이의 간격
-  
-  // 노드 및 컨테이너 배치 함수
-  const layoutNodesAndContainers = (nodeData: NodeData[]): Node[] => {
-    const horizontalGap = 200; // 노드 간 수평 간격
-    const baseY = 200; // 노드의 기본 Y 좌표 (컨테이너가 위에 배치되므로 더 아래로)
-    
-    let currentX = 50; // 시작 X 좌표
-    const nodes: Node[] = [];
-    
-    // 노드 생성
-    nodeData.forEach((node, index) => {
-      // 컨테이너 수에 따른 노드 너비 계산
-      // 컨테이너가 많으면 노드도 그에 비례해 넓어지도록 설정
-      const containersWidth = node.containers.length * containerWidth + (node.containers.length - 1) * containerGap;
-      const nodeWidth = Math.max(400, containersWidth); // 최소 너비 400px
-      
-      // 노드 생성 및 추가
-      nodes.push({
-        id: node.id,
-        type: 'swarmNode',
-        position: { x: currentX, y: baseY },
-        data: node,
-        style: { width: nodeWidth } // 노드 너비 설정
-      });
-      
-      // 컨테이너 노드 생성 및 배치
-      node.containers.forEach((container, containerIndex) => {
-        // 컨테이너 X 위치 계산 (노드 왼쪽 가장자리 + 컨테이너 인덱스 * (너비 + 간격))
-        const containerX = currentX + containerIndex * (containerWidth + containerGap);
-        // 컨테이너 Y 위치 계산 (노드 Y 위치 - 컨테이너 높이 - 간격)
-        const containerY = baseY - containerHeight - containerTopMargin;
-        
-        // 컨테이너 노드 생성
-        const containerId = `container-${node.id}-${containerIndex}`;
-        nodes.push({
-          id: containerId,
-          position: { x: containerX, y: containerY },
-          data: container,
-          type: 'container', // 컨테이너 노드 타입
-          style: {
-            width: containerWidth,
-            height: containerHeight
-          }
-        });
-      });
-      
-      // 다음 노드의 시작 X 좌표 업데이트 (현재 노드 너비 + 간격)
-      currentX += nodeWidth + horizontalGap;
-    });
-    
-    return nodes;
-  };
-  
   // 컴포넌트 마운트 시 초기 데이터 로드
   useEffect(() => {
     // ResizeObserver 오류 방지를 위한 지연 초기화
     const timer = setTimeout(() => {
-      // 노드와 컨테이너 배치
-      const layoutedNodes = layoutNodesAndContainers(sampleNodes);
+      // 레이아웃 계산 함수를 사용하여 노드, 컨테이너, 네트워크 배치
+      const layoutedNodes = calculateLayout(sampleNodes, sampleNetworks);
       setNodes(layoutedNodes);
       setInitialized(true);
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [setNodes]); // 의존성 배열 수정
+  }, [setNodes]);
   
   // 초기화 후 fitView 실행
   useEffect(() => {
@@ -228,7 +81,7 @@ const Canvas: React.FC = () => {
   // 리프레시 핸들러 (노드와 엣지 초기화)
   const handleRefresh = () => {
     // 노드 및 컨테이너 재배치
-    const layoutedNodes = layoutNodesAndContainers(sampleNodes);
+    const layoutedNodes = calculateLayout(sampleNodes, sampleNetworks);
     setNodes(layoutedNodes);
     
     // 뷰 리셋
@@ -236,12 +89,6 @@ const Canvas: React.FC = () => {
       fitView({ padding: 0.2 });
     }, 100);
   };
-
-  // 컨테이너 노드 렌더링 함수
-  const renderContainer = ({ data }: { data: ContainerData }) => {
-    return <Container data={data} />;
-  };
-
 
   return (
     <div className="w-full h-screen relative" ref={containerRef}>
@@ -256,7 +103,7 @@ const Canvas: React.FC = () => {
         <ReactFlow
           nodes={nodes}
           onNodesChange={onNodesChange}
-          nodeTypes={customNodeTypes}
+          nodeTypes={nodeTypes}
           nodesDraggable={false}
           fitView={false} // 초기 fitView 비활성화, useEffect에서 수동으로 호출
           minZoom={0.1}
