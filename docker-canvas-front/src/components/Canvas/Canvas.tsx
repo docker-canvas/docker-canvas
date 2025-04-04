@@ -27,13 +27,10 @@ import SwarmNode from '../Dockers/SwarmNode';
  * - 캔버스 초기화 기능
  */
 
-const renderContainer = ({ data }: { data: ContainerData }) => {
-  return <Container data={data} />;
-};
 
 const customNodeTypes = {
   swarmNode: SwarmNode,
-  container: renderContainer
+  container: Container
 };
 
 const Canvas: React.FC = () => {
@@ -90,6 +87,19 @@ const Canvas: React.FC = () => {
       }
     },
     {
+      id: 'node-5',
+      hostname: 'swarm-manager-01',
+      role: 'Manager',
+      networkInterfaces: [
+        { name: 'eth0', address: '192.168.1.10' }
+      ],
+      status: 'Ready',
+      containers: [],
+      labels: {
+        'node.role': 'manager'
+      }
+    },
+    {
       id: 'node-2',
       hostname: 'swarm-worker-01',
       role: 'Worker',
@@ -137,7 +147,7 @@ const Canvas: React.FC = () => {
       // 컨테이너 수에 따른 노드 너비 계산
       // 컨테이너가 많으면 노드도 그에 비례해 넓어지도록 설정
       const containersWidth = node.containers.length * containerWidth + (node.containers.length - 1) * containerGap;
-      const nodeWidth = Math.max(250, containersWidth); // 최소 너비 250px
+      const nodeWidth = Math.max(400, containersWidth); // 최소 너비 400px
       
       // 노드 생성 및 추가
       nodes.push({
@@ -145,8 +155,7 @@ const Canvas: React.FC = () => {
         type: 'swarmNode',
         position: { x: currentX, y: baseY },
         data: {
-          ...node,
-          nodeWidth: nodeWidth // 노드 너비 정보를 데이터에 추가
+          node
         },
         style: { width: nodeWidth } // 노드 너비 설정
       });
@@ -255,16 +264,6 @@ const Canvas: React.FC = () => {
           minZoom={0.1}
           maxZoom={2}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          onInit={(reactFlowInstance) => {
-            // ReactFlow가 완전히 초기화된 후 노드 설정
-            setTimeout(() => {
-              const layoutedNodes = layoutNodesAndContainers(sampleNodes);
-              setNodes(layoutedNodes);
-              setTimeout(() => {
-                reactFlowInstance.fitView({ padding: 0.2 });
-              }, 100);
-            }, 100);
-          }}
         >
           <Controls showInteractive={false} />
           <Background color="#aaa" gap={16} />

@@ -60,27 +60,9 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected }) => {
     }
   };
 
-  // 컨테이너 수에 따른 노드 너비 계산 (최소 250px, 컨테이너당 50px 추가)
-  // 컨테이너가 많을 경우 최대 너비 제한
-  const containerWidth = 120; // 컨테이너 너비 (Canvas.tsx와 일치시킴)
-  const containerGap = 10;    // 컨테이너 간격 (Canvas.tsx와 일치시킴)
-  const minNodeWidth = 250;   // 노드의 최소 너비
+  const nodeHeight = 400;
   
-  // 컨테이너 수에 따른 필요한 너비 계산
-  // 마지막 컨테이너 이후에는 간격이 필요 없으므로 (n-1)개의 간격만 필요
-  const containersWidth = data.containers.length > 0 
-    ? data.containers.length * containerWidth + (data.containers.length - 1) * containerGap
-    : 0;
-  
-  // 노드 너비는 컨테이너를 모두 수용할 수 있는 크기와 최소 너비 중 큰 값으로 설정
-  const nodeWidth = Math.max(minNodeWidth, containersWidth);
-  
-  // 노드 높이 계산 (기본 높이 + 컨테이너 표시 영역)
-  // 컨테이너가 많을 경우 스크롤이 생기도록 최대 높이 제한
-  const nodeHeight = Math.min(
-    400, // 최대 높이
-    200 + (Math.ceil(data.containers.length / 2) * 70) // 기본 높이 + 컨테이너 행 수 * 행 높이
-  );
+
   
   // 노드 역할에 따른 스타일
   const roleStyles = getRoleStyles(data.role);
@@ -100,7 +82,6 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected }) => {
         ${data.role === 'Manager' ? 'manager' : 'worker'}
       `}
       style={{
-        width: `${nodeWidth}px`,
         height: `${nodeHeight}px`,
         background: roleStyles.background,
         borderColor: roleStyles.borderColor,
