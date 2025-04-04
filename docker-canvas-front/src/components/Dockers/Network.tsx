@@ -112,46 +112,54 @@ const Network: React.FC<NetworkProps> = ({ data, selected }) => {
         background: networkTypeStyles.background,
         borderColor: networkTypeStyles.borderColor,
         color: 'white',
+        position: 'relative', // 타입 표시를 위한 상대 위치 설정
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 네트워크 내용 */}
-      <div className="flex justify-between items-center content">
-        {/* 네트워크 이름 & 드라이버 */}
-        <div className="flex flex-col">
-          <div className="network-name text-sm font-bold truncate" title={data.name}>
-            {data.name}
-          </div>
-          <div className="text-xs text-gray-200">
-            {data.driver}
-          </div>
-        </div>
-        
-        {/* 네트워크 범위 */}
-        <div className="label text-xs">
-          {data.scope}
-        </div>
+      
+      {/* 네트워크 타입 표시 (오른쪽 아래) */}
+      <div className="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded">
+        { data.name }
       </div>
       
-      {/* 호버 시 표시되는 상세 정보 */}
+      {/* 호버 시 표시되는 상세 정보 (Container 스타일과 통일) */}
       {isHovered && (
-        <div className="hover-info bg-gray-800 bg-opacity-80 absolute inset-0 flex flex-col items-center justify-center p-4 transition-opacity duration-200">
-          <h3 className="text-md font-bold mb-1">{data.name}</h3>
-          <div className="text-xs mb-1">Driver: {data.driver}</div>
-          <div className="text-xs mb-1">Scope: {data.scope}</div>
+        <div className="absolute z-50 bg-gray-800 bg-opacity-90 text-white p-3 rounded shadow-lg"
+          style={{ 
+            width: '200px', 
+            left: '50%', 
+            transform: 'translateX(-50%)', 
+            top: '100%',
+            marginTop: '5px'
+          }}>
+          <div className="font-bold mb-1">{data.name}</div>
+          <div className="text-xs text-gray-300 mb-1">타입: {data.type}</div>
+          <div className="text-xs mb-1">드라이버: {data.driver}</div>
+          <div className="text-xs mb-1">범위: {data.scope}</div>
           
           {/* 인터페이스 정보 (있을 경우) */}
           {data.interfaces && data.interfaces.length > 0 && (
-            <div className="text-xs">
-              <div>인터페이스:</div>
+            <div className="mt-1">
+              <div className="text-xs font-semibold">인터페이스:</div>
               {data.interfaces.map((iface, idx) => (
-                <div key={idx} className="text-xs text-gray-300">
+                <div key={idx} className="text-xs text-gray-300 ml-1">
                   {iface.name}: {iface.ipAddress}
+                  {iface.subnet && ` (${iface.subnet})`}
                 </div>
               ))}
             </div>
           )}
+          
+          {/* 추가 속성 (있을 경우) */}
+          <div className="mt-1 flex flex-wrap">
+            {data.attachable && (
+              <span className="text-xs bg-blue-700 rounded px-1 mr-1 mb-1">Attachable</span>
+            )}
+            {data.internal && (
+              <span className="text-xs bg-blue-700 rounded px-1 mr-1 mb-1">Internal</span>
+            )}
+          </div>
           
           {/* 생성 일시 (있을 경우) */}
           {data.createdAt && (

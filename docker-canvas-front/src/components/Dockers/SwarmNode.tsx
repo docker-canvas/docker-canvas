@@ -62,8 +62,6 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected }) => {
 
   const nodeHeight = 400;
   
-
-  
   // 노드 역할에 따른 스타일
   const roleStyles = getRoleStyles(data.role);
 
@@ -86,53 +84,69 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected }) => {
         background: roleStyles.background,
         borderColor: roleStyles.borderColor,
         color: 'white',
-        overflow: 'hidden' // 내용이 넘칠 경우 숨김 처리
+        overflow: 'hidden', // 내용이 넘칠 경우 숨김 처리
+        position: 'relative' // 타입 표시를 위한 상대 위치 설정
       }}
       onMouseEnter={() => setIsHovered(true)}  // 마우스 진입 시 호버 상태 true
       onMouseLeave={() => setIsHovered(false)} // 마우스 이탈 시 호버 상태 false
     >
       {/* 노드 내용 */}
       <div className="flex flex-col content" style={{ height: '100%' }}>
-        {/* 헤더 영역 */}
-        <div className="flex justify-between items-center mb-3">
-          {/* 호스트명 */}
-          <h3 className="text-lg font-bold">{data.hostname}</h3>
-          
-          {/* 상태 표시 */}
-          <div className="flex items-center">
-            <span className={`inline-block w-3 h-3 rounded-full mr-2 ${getStatusIndicatorStyle()}`}></span>
-            <span className="text-sm">{data.status || 'Unknown'}</span>
-          </div>
-        </div>
-
-        {/* 역할 및 정보 표시 */}
-        <div className="flex justify-between items-center mb-3">
-          <div className="mb-2 text-sm">
-            <span className="bg-opacity-30 bg-white px-2 py-1 rounded label">
-              {data.role}
-            </span>
-          </div>
-          
-          {/* 상세 정보 토글 버튼 */}
-          <button 
-            onClick={toggleDetails}
-            className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 rounded px-2 py-1 transition-colors"
-          >
-            {showDetails ? '요약 보기' : '상세 정보'}
-          </button>
-        </div>
-
         
-        {/* 호버 시 보여줄 정보 (간략한 요약) */}
-        {isHovered && !showDetails && (
-          <div className="hover-info bg-gray-800 bg-opacity-80 absolute inset-0 flex flex-col items-center justify-center p-4 transition-opacity duration-200">
-            <h3 className="text-xl font-bold mb-2">{data.hostname}</h3>
-            <div className="flex items-center mb-2">
-              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${getStatusIndicatorStyle()}`}></span>
-              <span>{data.status || 'Unknown'}</span>
+        {/* 컴포넌트 타입 표시 - 오른쪽 아래에 위치 */}
+        <div className="absolute bottom-2 right-2 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded">
+          {data.role}
+        </div>
+
+        {/* 호버 시 보여줄 정보 (Container 스타일과 통일) */}
+        {isHovered && (
+          <div className="absolute z-50 bg-gray-800 bg-opacity-90 text-white p-3 rounded shadow-lg"
+            style={{ 
+              width: '200px', 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              top: '50%',
+              marginTop: '-100px'
+            }}>
+            <div className="font-bold mb-1">{data.hostname}</div>
+            <div className="text-xs mb-1">역할: {data.role}</div>
+            
+            <div className="flex items-center my-1">
+              <span className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusIndicatorStyle()}`}></span>
+              <span className="text-xs">{data.status || 'Unknown'}</span>
             </div>
-            <div className="text-lg mb-2">역할: {data.role}</div>
-            <div className="text-lg">컨테이너: {data.containers.length}개</div>
+            
+            {/* 네트워크 인터페이스 정보 */}
+            {data.networkInterfaces && data.networkInterfaces.length > 0 && (
+              <div className="mt-1">
+                <div className="text-xs font-semibold">네트워크 인터페이스:</div>
+                {data.networkInterfaces.map((iface, index) => (
+                  <div key={index} className="text-xs text-gray-300 ml-1">
+                    {iface.name}: {iface.address}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* 컨테이너 수 정보 */}
+            <div className="mt-1">
+              <div className="text-xs font-semibold">컨테이너:</div>
+              <div className="text-xs text-gray-300 ml-1">
+                {data.containers.length}개
+              </div>
+            </div>
+            
+            {/* 라벨 정보 (있을 경우) */}
+            {data.labels && Object.keys(data.labels).length > 0 && (
+              <div className="mt-1">
+                <div className="text-xs font-semibold">라벨:</div>
+                {Object.entries(data.labels).map(([key, value], index) => (
+                  <div key={index} className="text-xs text-gray-300 ml-1">
+                    {key}: {value}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

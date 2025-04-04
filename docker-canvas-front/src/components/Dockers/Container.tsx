@@ -53,22 +53,21 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
         backgroundColor: '#099CEC', // Docker 시그니처 파란색
         color: 'white',
         width: '120px', // 고정 너비로 가로 배치 용이하게
+        height: '80px', // layoutCalculator.ts의 containerHeight와 일치시킴
         position: 'relative'
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 컨테이너 기본 정보 */}
-      <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold truncate" title={data.name} style={{ maxWidth: '90px' }}>
-          {data.name}
-        </div>
-        <div className={`status-indicator ml-1 w-2 h-2 rounded-full ${getStatusColor()}`}></div>
+
+      {/* 컴포넌트 타입 표시 (오른쪽 아래) */}
+      <div className="absolute bottom-0 right-1 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded" style={{ fontSize: '0.65rem' }}>
+        {data.name}
       </div>
       
       {/* 호버 시 표시되는 상세 정보 */}
       {isHovered && (
-        <div className="container-hover-info absolute z-10 bg-gray-800 bg-opacity-90 text-white p-3 rounded shadow-lg" 
+        <div className="container-hover-info absolute z-50 bg-gray-800 bg-opacity-90 text-white p-3 rounded shadow-lg" 
           style={{ 
             width: '200px', 
             left: '50%', 
