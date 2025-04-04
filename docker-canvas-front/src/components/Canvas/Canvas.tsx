@@ -154,9 +154,7 @@ const Canvas: React.FC = () => {
         id: node.id,
         type: 'swarmNode',
         position: { x: currentX, y: baseY },
-        data: {
-          node
-        },
+        data: node,
         style: { width: nodeWidth } // 노드 너비 설정
       });
       
