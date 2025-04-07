@@ -53,32 +53,24 @@ export const simpleSampleNodes: NodeData[] = [
     {
       id: 'network-gwbridge',
       name: 'docker_gwbridge',
-      driver: 'gwbridge',
+      driver: 'bridge',
       scope: 'local',
-      type: 'docker',
-      interfaces: [
+      networkInfo: 
         {
-          name: 'gwbr0',
-          ipAddress: '172.18.0.1',
           subnet: '172.18.0.0/16',
           gateway: '172.18.0.1'
-        }
-      ]
+        },
     },
     {
       id: 'network-ingress',
       name: 'ingress',
       driver: 'overlay',
       scope: 'swarm',
-      type: 'docker',
-      interfaces: [
+      networkInfo: 
         {
-          name: 'ovl0',
-          ipAddress: '10.0.0.1',
           subnet: '10.0.0.0/24',
           gateway: '10.0.0.1'
-        }
-      ],
+        },
       attachable: true
     },
     {
@@ -86,15 +78,11 @@ export const simpleSampleNodes: NodeData[] = [
       name: 'web-net',
       driver: 'overlay',
       scope: 'swarm',
-      type: 'docker',
-      interfaces: [
+      networkInfo:
         {
-          name: 'ovl1',
-          ipAddress: '10.1.0.1',
           subnet: '10.1.0.0/24',
           gateway: '10.1.0.1'
-        }
-      ],
+        },
       attachable: true
     }
   ];

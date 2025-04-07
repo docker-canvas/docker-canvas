@@ -25,7 +25,7 @@ export const getSampleContainers = (nodeId: string, count: number): ContainerDat
     networks: [
       {
         name: i % 2 === 0 ? 'bridge' : 'docker_gwbridge',
-        driver: i % 2 === 0 ? 'bridge' : 'overlay',
+        driver: i % 2 === 0 ? 'bridge' : 'bridge', // gwbridge를 bridge로 대체
         ipAddress: `172.17.0.${10 + i}`
       },
       // 일부 컨테이너에는 추가 네트워크 연결
@@ -118,18 +118,13 @@ export const sampleNodes: NodeData[] = [
 export const sampleNetworks: NetworkData[] = [
   {
     id: 'network-external',
-    name: 'external_network',
+    name: 'docker_gwbridge',
     driver: 'bridge',
     scope: 'local',
-    type: 'external',
-    interfaces: [
-      {
-        name: 'eth0',
-        ipAddress: '192.168.1.1',
-        subnet: '192.168.1.0/24',
-        gateway: '192.168.1.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '192.168.1.0/24',
+      gateway: '192.168.1.1'
+    },
     createdAt: new Date().toISOString()
   },
   {
@@ -137,15 +132,10 @@ export const sampleNetworks: NetworkData[] = [
     name: 'ingress',
     driver: 'overlay',
     scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'eth1',
-        ipAddress: '10.0.0.1',
-        subnet: '10.0.0.0/24',
-        gateway: '10.0.0.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '10.0.0.0/24',
+      gateway: '10.0.0.1'
+    },
     attachable: true,
     createdAt: new Date().toISOString()
   },
@@ -154,15 +144,10 @@ export const sampleNetworks: NetworkData[] = [
     name: 'app-network',
     driver: 'overlay',
     scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'ovl0',
-        ipAddress: '10.0.0.1',
-        subnet: '10.0.0.0/24',
-        gateway: '10.0.0.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '10.0.0.0/24',
+      gateway: '10.0.0.1'
+    },
     attachable: true,
     createdAt: new Date().toISOString()
   },
@@ -171,15 +156,10 @@ export const sampleNetworks: NetworkData[] = [
     name: 'frontend-network',
     driver: 'overlay',
     scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'ovl1',
-        ipAddress: '10.1.0.1',
-        subnet: '10.1.0.0/24',
-        gateway: '10.1.0.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '10.1.0.0/24',
+      gateway: '10.1.0.1'
+    },
     attachable: true,
     createdAt: new Date().toISOString()
   },
@@ -188,64 +168,44 @@ export const sampleNetworks: NetworkData[] = [
     name: 'backend-network',
     driver: 'overlay',
     scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'ovl2',
-        ipAddress: '10.2.0.1',
-        subnet: '10.2.0.0/24',
-        gateway: '10.2.0.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '10.2.0.0/24',
+      gateway: '10.2.0.1'
+    },
     attachable: true,
     createdAt: new Date().toISOString()
   },
   {
     id: 'network-gwbridge-1',
     name: 'docker_gwbridge',
-    driver: 'gwbridge',
+    driver: 'bridge', // gwbridge를 bridge로 변경
     scope: 'local',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'gwbr0',
-        ipAddress: '172.18.0.1',
-        subnet: '172.18.0.0/16',
-        gateway: '172.18.0.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '172.18.0.0/16',
+      gateway: '172.18.0.1'
+    },
     createdAt: new Date().toISOString()
   },
   {
     id: 'network-gwbridge-2',
     name: 'docker_gwbridge',
-    driver: 'gwbridge',
+    driver: 'bridge', // gwbridge를 bridge로 변경
     scope: 'local',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'gwbr0',
-        ipAddress: '172.18.0.2',
-        subnet: '172.18.0.0/16',
-        gateway: '172.18.0.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '172.18.0.0/16',
+      gateway: '172.18.0.1'
+    },
     createdAt: new Date().toISOString()
   },
   {
     id: 'network-gwbridge-3',
     name: 'docker_gwbridge',
-    driver: 'gwbridge',
+    driver: 'bridge', // gwbridge를 bridge로 변경
     scope: 'local',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'gwbr0',
-        ipAddress: '172.18.0.3',
-        subnet: '172.18.0.0/16',
-        gateway: '172.18.0.1'
-      }
-    ],
+    networkInfo: {
+      subnet: '172.18.0.0/16',
+      gateway: '172.18.0.1'
+    },
     createdAt: new Date().toISOString()
   }
 ];

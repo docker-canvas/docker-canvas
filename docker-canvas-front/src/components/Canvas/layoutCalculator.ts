@@ -92,8 +92,6 @@ export const calculateLayout = (
   layoutInfo.layerYPositions.nodes = 
     layoutInfo.layerYPositions.gwbridge + layoutConfig.gwbridgeNetworkHeight + layoutConfig.layerGap;
   
-  layoutInfo.layerYPositions.external = 
-    layoutInfo.layerYPositions.nodes + layoutConfig.nodeHeight + layoutConfig.layerGap;
   
   // 3. 컨테이너 배치 및 핸들 위치 계산
   nodeData.forEach((node) => {
@@ -233,7 +231,7 @@ export const calculateLayout = (
   
   // 5. 각 노드별 GWBridge 네트워크 배치
   const gwbridgeNetworks = networks.filter(n => 
-    n.driver === 'gwbridge' || n.name.includes('gwbridge')
+    n.driver === 'bridge' || n.name == 'docker_gwbridge'
   );
   
   const useGwbridgeCount = Math.min(nodeData.length, gwbridgeNetworks.length);
@@ -288,24 +286,6 @@ export const calculateLayout = (
       style: { width: nodeWidth, height: layoutConfig.nodeHeight }
     });
   });
-  
-  // 7. External 네트워크 배치
-  const externalNetwork = networks.find(n => n.type === 'external');
-  if (externalNetwork) {
-    nodes.push({
-      id: externalNetwork.id,
-      type: 'networkNode',
-      position: { 
-        x: layoutConfig.startX, 
-        y: layoutInfo.layerYPositions.external 
-      },
-      data: externalNetwork,
-      style: { 
-        width: layoutInfo.totalWidth,
-        height: layoutConfig.externalNetworkHeight 
-      }
-    });
-  }
   
   return { nodes, layoutInfo };
 };

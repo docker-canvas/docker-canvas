@@ -31,8 +31,6 @@ export interface ContainerData {
   status: ContainerStatus;          // 컨테이너 상태
   networks: ContainerNetwork[];     // 연결된 네트워크 목록
   ports?: { internal: number; external: number; protocol: 'tcp' | 'udp' }[]; // 포트 매핑
-  command?: string;                 // 실행 명령어
   createdAt?: string;               // 생성 일시
-  labels?: Record<string, string>;  // 컨테이너 라벨
   handlePositions?: HandlePositions; // 핸들 위치 정보 (레이아웃 계산기에서 설정)
 }
