@@ -136,14 +136,6 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
           <span className="label">{data.role}</span>
         </div>
         
-        {/* 네트워크 인터페이스 정보 */}
-        <div className="network-info mt-4">
-          {data.networkInterfaces.map((iface, idx) => (
-            <div key={idx}>
-              {iface.name}: {iface.address}
-            </div>
-          ))}
-        </div>
         
         {/* 컨테이너 수 표시 */}
         <div className="mt-auto">
@@ -176,17 +168,6 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
             <span className="text-xs">{data.status || 'Unknown'}</span>
           </div>
           
-          {/* 네트워크 인터페이스 정보 */}
-          {data.networkInterfaces && data.networkInterfaces.length > 0 && (
-            <div className="mt-1">
-              <div className="text-xs font-semibold">네트워크 인터페이스:</div>
-              {data.networkInterfaces.map((iface, index) => (
-                <div key={index} className="text-xs text-gray-300 ml-1">
-                  {iface.name}: {iface.address}
-                </div>
-              ))}
-            </div>
-          )}
           
           {/* 컨테이너 수 정보 */}
           <div className="mt-1">

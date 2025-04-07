@@ -49,9 +49,6 @@ export const simpleSampleNodes: NodeData[] = [
     id: 'node-1',
     hostname: 'simple-swarm-node',
     role: 'Worker',
-    networkInterfaces: [
-      { name: 'eth0', address: '192.168.1.10' }
-    ],
     status: 'Ready',
     containers: [
       {
