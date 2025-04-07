@@ -9,7 +9,7 @@ export const simpleSampleNodes: NodeData[] = [
       networkInterfaces: [
         { name: 'eth0', address: '192.168.1.10' }
       ],
-      status: 'Ready',
+      status: 'ready',
       containers: [
         {
           id: 'node-1-container-1',

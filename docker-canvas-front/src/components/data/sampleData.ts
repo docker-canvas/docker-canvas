@@ -65,7 +65,7 @@ export const sampleNodes: NodeData[] = [
     networkInterfaces: [
       { name: 'eth0', address: '192.168.1.10' }
     ],
-    status: 'Ready',
+    status: 'ready',
     containers: getSampleContainers('node-1', 5),
     labels: {
       'node.role': 'manager'
@@ -78,7 +78,7 @@ export const sampleNodes: NodeData[] = [
     networkInterfaces: [
       { name: 'eth0', address: '192.168.1.14' }
     ],
-    status: 'Ready',
+    status: 'ready',
     containers: getSampleContainers('node-5', 3),
     labels: {
       'node.role': 'manager'
@@ -91,7 +91,7 @@ export const sampleNodes: NodeData[] = [
     networkInterfaces: [
       { name: 'eth0', address: '192.168.1.11' }
     ],
-    status: 'Ready',
+    status: 'ready',
     containers: getSampleContainers('node-2', 8),
     labels: {
       'node.role': 'worker'
@@ -104,7 +104,7 @@ export const sampleNodes: NodeData[] = [
     networkInterfaces: [
       { name: 'eth0', address: '192.168.1.12' }
     ],
-    status: 'Down',
+    status: 'down',
     containers: getSampleContainers('node-3', 3),
     labels: {
       'node.role': 'worker'

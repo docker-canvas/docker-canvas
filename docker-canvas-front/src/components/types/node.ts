@@ -24,7 +24,7 @@ export interface NodeData {
   hostname: string;                   // 호스트명
   role: NodeRole;                     // 역할 (Manager/Worker)
   networkInterfaces: NetworkInterface[]; // 네트워크 인터페이스 목록
-  status?: 'Ready' | 'Down' | 'Disconnected'; // 노드 상태 (선택적)
+  status?: 'ready' | 'down' | 'disconnected'; // 노드 상태 (선택적)
   containers: ContainerData[];        // 컨테이너 목록 (이전의 containerCount 대체)
   labels?: Record<string, string>;    // 노드 라벨 (선택적)
   createdAt?: string;                 // 생성 일시 (선택적)

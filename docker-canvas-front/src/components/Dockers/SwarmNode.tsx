@@ -49,11 +49,11 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
   // 노드 상태에 따른 상태 표시기 스타일
   const getStatusIndicatorStyle = () => {
     switch (data.status) {
-      case 'Ready':
+      case 'ready':
         return 'bg-green-500';
-      case 'Down':
+      case 'down':
         return 'bg-red-500';
-      case 'Disconnected':
+      case 'disconnected':
         return 'bg-yellow-500';
       default:
         return 'bg-gray-500';

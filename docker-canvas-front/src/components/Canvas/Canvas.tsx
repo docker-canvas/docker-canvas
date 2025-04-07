@@ -14,6 +14,7 @@ import nodeTypes from '../types/nodeType';
 import edgeTypes from '../types/edgeType';
 import { sampleNodes, sampleNetworks } from '../data/sampleData';
 import { generateLayout } from './layoutEngine';
+import { useStreamDockerEvents } from '../data/docker-api'
 import { simpleSampleNetworks, simpleSampleNodes } from '../data/simpleSampleData';
 
 /**
@@ -37,6 +38,7 @@ const Canvas: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [activeMode, setActiveMode] = useState('hand');
+  const { eventData, loading, error } = useStreamDockerEvents('http://localhost:3001/docker/events');
   
   // ResizeObserver 오류 방지를 위한 초기화 상태 추가
   const [initialized, setInitialized] = useState(false);
