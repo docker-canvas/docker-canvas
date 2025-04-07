@@ -8,8 +8,8 @@ import './Network.css';
  * ReactFlow 노드 컴포넌트에 필요한 속성을 정의합니다.
  */
 export interface NetworkProps {
-  data: NetworkData;   // 네트워크 데이터
-  selected?: boolean;   // 노드 선택 상태 (선택적 속성으로 변경)
+  data: NetworkData;    // 네트워크 데이터
+  selected?: boolean;   // 노드 선택 상태 (선택적 속성)
 }
 
 /**
@@ -23,6 +23,7 @@ export interface NetworkProps {
  * - 네트워크 이름 및 기본 정보 표시
  * - 호버 시 상세 정보 표시
  * - 동적으로 계산된 핸들 위치로 수직 연결 보장
+ * - Overlay 네트워크는 컨테이너 핸들과 연결될 수 있는 하단 핸들 제공
  */
 const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
   // 호버 상태 관리
@@ -201,12 +202,48 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
       );
     }
     
-    // 기본 Overlay 네트워크
+    // Overlay 네트워크인 경우 (Ingress 제외)
+    if (data.driver === 'overlay' && data.name !== 'ingress') {
+      // 연결된 컨테이너 핸들 정보가 있는 경우
+      if (data.containerHandles && data.containerHandles.length > 0) {
+        return data.containerHandles.map((handleInfo, index) => (
+          <Handle
+            key={`container-handle-${index}`}
+            type="source"
+            position={Position.Bottom}
+            id={`overlay-out-${handleInfo.containerId}`}
+            style={{ 
+              background: '#4FD1C5', 
+              width: '8px', 
+              height: '8px',
+              left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+            }}
+          />
+        ));
+      }
+      
+      // 기본 핸들 (정보가 없는 경우) - 중앙에 하나
+      return (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="overlay-out"
+          style={{ 
+            background: '#4FD1C5', 
+            width: '8px', 
+            height: '8px',
+            left: '50%' 
+          }}
+        />
+      );
+    }
+    
+    // 기본 핸들 (일반 네트워크)
     return (
       <Handle
         type="target"
-        position={Position.Bottom}
-        id="overlay-in"
+        position={Position.Top}
+        id="network-in"
         style={{ 
           background: '#4FD1C5', 
           width: '8px', 
@@ -268,6 +305,16 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
                   {iface.subnet && ` (${iface.subnet})`}
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* 연결된 컨테이너 정보 (있을 경우) */}
+          {data.containerHandles && data.containerHandles.length > 0 && (
+            <div className="mt-1">
+              <div className="text-xs font-semibold">연결된 컨테이너:</div>
+              <div className="text-xs text-gray-300 ml-1">
+                {data.containerHandles.length}개 연결됨
+              </div>
             </div>
           )}
           

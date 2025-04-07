@@ -20,7 +20,7 @@ export interface ContainerNetwork {
 // 핸들 위치 정보 인터페이스
 export interface HandlePositions {
   gwbridgeOut?: number; // GWBridge 연결 출력 핸들 위치 (X 좌표)
-  overlayIn?: Record<string, number>; // Overlay 네트워크 핸들 위치
+  overlayIn?: Record<string, number>; // Overlay 네트워크 핸들 위치 (네트워크 이름 -> X 위치 매핑)
 }
 
 // 컨테이너 데이터 인터페이스 정의

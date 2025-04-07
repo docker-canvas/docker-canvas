@@ -22,7 +22,8 @@ interface ContainerProps {
  * - 컨테이너 상태에 따라 다른 상태 표시기 적용
  * - 호버 시 상세 정보 표시
  * - 가로로 배치되도록 설계
- * - 상단/하단 핸들을 통해 네트워크와 연결 가능
+ * - 상단 핸들을 통해 Overlay 네트워크와 연결
+ * - 하단 핸들을 통해 GWBridge 네트워크와 연결
  */
 const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -46,7 +47,7 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
   const shortId = data.id.substring(0, 12);
   
   // 컨테이너가 연결되는 네트워크 타입 분류
-  const overlayNetworks = data.networks.filter(network => network.driver === 'overlay');
+  const overlayNetworks = data.networks.filter(network => network.driver === 'overlay' && network.name !== 'ingress');
   const bridgeNetworks = data.networks.filter(network => network.driver === 'bridge' || network.driver === 'gwbridge');
   
   // 상단 핸들 (Overlay 네트워크 연결용)
@@ -58,6 +59,12 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
       const spacing = 120 / (overlayNetworks.length + 1);
       const position = spacing * (index + 1);
       
+      // 핸들 위치가 설정되어 있으면 해당 위치 사용, 아니면 계산된 위치 사용
+      const handlePosition = data.handlePositions?.overlayIn?.[network.name];
+      const leftPosition = handlePosition 
+        ? `${handlePosition * 100}%` 
+        : `${position}px`;
+      
       return (
         <Handle
           key={`overlay-${index}`}
@@ -68,7 +75,7 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
             background: '#4299E1', 
             width: '8px', 
             height: '8px',
-            left: `${position}px`
+            left: leftPosition
           }}
         />
       );

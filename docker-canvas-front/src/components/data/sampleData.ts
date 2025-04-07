@@ -33,6 +33,18 @@ export const getSampleContainers = (nodeId: string, count: number): ContainerDat
         name: 'app-network',
         driver: 'overlay',
         ipAddress: `10.0.0.${i+1}`
+      }] : []),
+      // 일부 컨테이너에는 다른 Overlay 네트워크 추가
+      ...(i % 5 === 0 ? [{
+        name: 'frontend-network',
+        driver: 'overlay',
+        ipAddress: `10.1.0.${i+1}`
+      }] : []),
+      // 또 다른 Overlay 네트워크
+      ...(i % 7 === 0 ? [{
+        name: 'backend-network',
+        driver: 'overlay',
+        ipAddress: `10.2.0.${i+1}`
       }] : [])
     ],
     ports: i % 2 === 0 ? [
@@ -67,7 +79,7 @@ export const sampleNodes: NodeData[] = [
       { name: 'eth0', address: '192.168.1.14' }
     ],
     status: 'Ready',
-    containers: [],
+    containers: getSampleContainers('node-5', 3),
     labels: {
       'node.role': 'manager'
     }
@@ -132,6 +144,57 @@ export const sampleNetworks: NetworkData[] = [
         ipAddress: '10.0.0.1',
         subnet: '10.0.0.0/24',
         gateway: '10.0.0.1'
+      }
+    ],
+    attachable: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-app',
+    name: 'app-network',
+    driver: 'overlay',
+    scope: 'swarm',
+    type: 'docker',
+    interfaces: [
+      {
+        name: 'ovl0',
+        ipAddress: '10.0.0.1',
+        subnet: '10.0.0.0/24',
+        gateway: '10.0.0.1'
+      }
+    ],
+    attachable: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-frontend',
+    name: 'frontend-network',
+    driver: 'overlay',
+    scope: 'swarm',
+    type: 'docker',
+    interfaces: [
+      {
+        name: 'ovl1',
+        ipAddress: '10.1.0.1',
+        subnet: '10.1.0.0/24',
+        gateway: '10.1.0.1'
+      }
+    ],
+    attachable: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-backend',
+    name: 'backend-network',
+    driver: 'overlay',
+    scope: 'swarm',
+    type: 'docker',
+    interfaces: [
+      {
+        name: 'ovl2',
+        ipAddress: '10.2.0.1',
+        subnet: '10.2.0.0/24',
+        gateway: '10.2.0.1'
       }
     ],
     attachable: true,

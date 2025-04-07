@@ -17,8 +17,8 @@ import { NodeLayoutInfo } from '../types/layoutTypes';
  * 요구사항에 따라 다음 규칙을 적용합니다:
  * - gwbridge는 Node (HostMachine)의 네트워크와 연결
  * - swarm 네트워크 관련 컨테이너는 gwbridge와 연결
+ * - 컨테이너는 overlay 네트워크와 연결 (컨테이너의 네트워크 설정에 따라)
  * - ingress-sbox 컨테이너는 gwbridge와 Ingress에 연결
- * - 컨테이너는 모든 overlay network와 연결
  * 
  * @param layoutedNodes 배치가 계산된 노드들
  * @param layoutInfo 레이아웃 계산 정보
@@ -123,7 +123,45 @@ export const calculateEdges = (
     }
   });
   
-  // TODO: 필요한 경우 다른 연결 규칙 추가 (Overlay, Ingress 등)
+  // 규칙 3: 컨테이너는 Overlay 네트워크와 연결
+  if (layoutInfo.containerToOverlay) {
+    // 모든 컨테이너에 대해 Overlay 네트워크 연결 처리
+    Object.values(layoutInfo.containerToOverlay).forEach(connections => {
+      connections.forEach(connection => {
+        const { containerId, networkId, networkName } = connection;
+        
+        // 연결할 Overlay 네트워크 찾기
+        const overlayNetwork = overlayNetworks.find(network => network.id === networkId);
+        if (!overlayNetwork) return; // Overlay 네트워크가 없으면 건너뛰기
+        
+        // 해당 컨테이너 노드와 네트워크 노드의 실제 핸들 확인
+        const containerNode = nodeMap.get(containerId);
+        const networkNode = nodeMap.get(networkId);
+        
+        if (!containerNode || !networkNode) return; // 노드가 없으면 건너뛰기
+        
+        // 컨테이너 핸들 ID 결정
+        const targetHandleId = `overlay-in-${networkName}`;
+        
+        // 네트워크 노드의 핸들 ID 결정
+        const sourceHandleId = `overlay-out-${containerId}`;
+        
+        // 컨테이너와 Overlay 간 엣지 생성
+        edges.push({
+          id: `edge-${networkId}-to-${containerId}`,
+          source: networkId,  // Overlay 네트워크가 소스(상단)
+          target: containerId,  // 컨테이너가 타겟(하단)
+          sourceHandle: sourceHandleId,  // Overlay 네트워크의 해당 컨테이너용 핸들
+          targetHandle: targetHandleId,  // 컨테이너의 해당 네트워크용 핸들
+          type: 'swarmEdge',
+          data: {
+            edgeType: 'ingress' as SwarmEdgeType, // Overlay 타입은 ingress 스타일로 표시
+            label: networkName
+          }
+        });
+      });
+    });
+  }
   
   return edges;
 };

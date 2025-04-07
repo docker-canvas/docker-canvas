@@ -4,13 +4,13 @@
  * Docker Swarm 인프라 요소들(노드, 컨테이너, 네트워크)의 
  * 위치와 크기를 계산하는 유틸리티 함수들을 제공합니다.
  * 
- * 레이아웃 순서(아래에서 위로):
- * external -> node -> gwbridge -> container -> ingress -> overlay 네트워크
+ * 레이아웃 순서(위에서 아래로):
+ * overlay -> ingress -> container -> gwbridge -> node -> external 네트워크
  */
 
 import { Node } from 'reactflow';
 import { NodeData } from '../types/node';
-import { ContainerData } from '../types/container';
+import { ContainerData, ContainerNetwork } from '../types/container';
 import { NetworkData, ContainerHandleInfo } from '../types/network';
 import { layoutConfig } from './layoutConfig';
 import { NodeLayoutInfo } from '../types/layoutTypes';
@@ -31,6 +31,12 @@ export const calculateLayout = (
   // 핸들 위치 정보를 저장할 객체
   const containerToGWBridge: Record<string, { containerId: string, gwbridgeId: string, xOffset: number }> = {};
   
+  // Overlay 네트워크 연결 정보를 저장할 객체
+  const containerToOverlay: Record<string, { containerId: string, networkId: string, networkName: string, xOffset: number }[]> = {};
+  
+  // 각 Overlay 네트워크에 연결된 컨테이너 정보를 저장할 객체
+  const overlayNetworkContainers: Record<string, ContainerHandleInfo[]> = {};
+  
   // 전체 레이아웃의 현재 상태 추적
   const layoutInfo: NodeLayoutInfo = {
     nodeWidths: {},
@@ -38,6 +44,8 @@ export const calculateLayout = (
     currentX: layoutConfig.startX,
     totalWidth: 0,
     containerToGWBridge: {},
+    containerToOverlay: {},
+    overlayNetworkContainers: {},
     layerYPositions: {
       external: 0,
       nodes: 0,
@@ -71,18 +79,32 @@ export const calculateLayout = (
     }
   });
   
-  // 2. 레이어별 Y 위치 계산 (위에서 아래로 - 화면상 overlay가 최상단, external이 최하단에 오도록)
+  // 2. 레이어별 Y 위치 계산 (위에서 아래로)
   
   // Overlay 레이어 (맨 위 시작)
-  layoutInfo.layerYPositions.overlay = layoutConfig.startY;
+  // 여러 Overlay 네트워크를 배치할 수 있도록 충분한 공간 확보
+  layoutInfo.layerYPositions.overlay = layoutConfig.startY + 50;
   
-  // Ingress 레이어 (Overlay 아래)
+  // Overlay 네트워크 개수 파악
+  const overlayNetworkCount = networks.filter(n => 
+    n.driver === 'overlay' && n.name !== 'ingress' && !n.name.includes('gwbridge')
+  ).length;
+  
+  // Ingress 레이어 (모든 Overlay 네트워크 아래)
+  // 각 Overlay 마다 네트워크 높이 + 레이어 간격 만큼 추가
   layoutInfo.layerYPositions.ingress = 
-    layoutInfo.layerYPositions.overlay + layoutConfig.overlayNetworkHeight + layoutConfig.layerGap;
+    layoutInfo.layerYPositions.overlay + 
+    (overlayNetworkCount * layoutConfig.overlayNetworkHeight) + 
+    (overlayNetworkCount * layoutConfig.layerGap);
   
   // 컨테이너 레이어 (Ingress 아래)
-  layoutInfo.layerYPositions.containers = 
-    layoutInfo.layerYPositions.ingress + layoutConfig.ingressNetworkHeight + layoutConfig.layerGap;
+  // Ingress가 없으면 바로 Overlay 아래에 배치
+  if (networks.find(n => n.name === 'ingress')) {
+    layoutInfo.layerYPositions.containers = 
+      layoutInfo.layerYPositions.ingress + layoutConfig.ingressNetworkHeight + layoutConfig.layerGap;
+  } else {
+    layoutInfo.layerYPositions.containers = layoutInfo.layerYPositions.ingress;
+  }
   
   // GWBridge 레이어 (컨테이너 아래)
   layoutInfo.layerYPositions.gwbridge = 
@@ -96,46 +118,8 @@ export const calculateLayout = (
   layoutInfo.layerYPositions.external = 
     layoutInfo.layerYPositions.nodes + layoutConfig.nodeHeight + layoutConfig.layerGap;
   
-  // 3. 기타 Overlay 네트워크 배치 (맨 위)
-  const overlayNetworks = networks.filter(n => 
-    n.driver === 'overlay' && n.name !== 'ingress' && !n.name.includes('gwbridge')
-  );
-  
-  overlayNetworks.forEach((network, index) => {
-    nodes.push({
-      id: network.id,
-      type: 'networkNode',
-      position: { 
-        x: layoutConfig.startX, 
-        y: layoutInfo.layerYPositions.overlay + index * (layoutConfig.overlayNetworkHeight + 10) 
-      },
-      data: network,
-      style: { 
-        width: layoutInfo.totalWidth,
-        height: layoutConfig.overlayNetworkHeight 
-      }
-    });
-  });
-  
-  // 4. Ingress 네트워크 배치 (Overlay 아래)
-  const ingressNetwork = networks.find(n => n.name === 'ingress');
-  if (ingressNetwork) {
-    nodes.push({
-      id: ingressNetwork.id,
-      type: 'networkNode',
-      position: { 
-        x: layoutConfig.startX, 
-        y: layoutInfo.layerYPositions.ingress 
-      },
-      data: ingressNetwork,
-      style: { 
-        width: layoutInfo.totalWidth,
-        height: layoutConfig.ingressNetworkHeight 
-      }
-    });
-  }
-  
-  // 5. 컨테이너 배치 및 핸들 위치 계산 (Ingress 아래)
+  // 3. 컨테이너 배치 및 핸들 위치 계산 (Ingress 아래)
+  // 이 단계에서 overlay 네트워크 연결 정보도 수집
   nodeData.forEach((node) => {
     const nodeX = layoutInfo.nodePositions[node.id].x;
     const nodeWidth = layoutInfo.nodeWidths[node.id];
@@ -161,18 +145,60 @@ export const calculateLayout = (
       // 노드 내에서의 상대적 X 위치 (0~1 사이 값)
       const xOffset = (containerCenterX - nodeX) / nodeWidth;
       
-      // 핸들 위치 정보 저장
+      // 핸들 위치 정보 저장 (GWBridge)
       layoutInfo.containerToGWBridge[containerId] = {
         containerId: containerId,
         gwbridgeId: gwbridgeId,
         xOffset: xOffset
       };
       
+      // Overlay 네트워크 연결 정보 처리
+      const overlayConnections = container.networks.filter(
+        network => network.driver === 'overlay' && network.name !== 'ingress'
+      );
+      
+      // 컨테이너에 연결된 overlay 네트워크 목록 저장
+      if (overlayConnections.length > 0) {
+        containerToOverlay[containerId] = [];
+        
+        overlayConnections.forEach((network, idx) => {
+          // 네트워크 ID 계산 (기존 네트워크에서 찾거나 생성)
+          const overlayNetworkId = `network-${network.name}`;
+          
+          // 컨테이너와 Overlay 네트워크 간의 연결 정보 저장
+          containerToOverlay[containerId].push({
+            containerId,
+            networkId: overlayNetworkId,
+            networkName: network.name,
+            // space-around 방식으로 핸들 위치 계산 (컨테이너 상단에 균등 배치)
+            xOffset: (idx + 1) / (overlayConnections.length + 1)
+          });
+          
+          // Overlay 네트워크에 컨테이너 핸들 정보 추가
+          if (!overlayNetworkContainers[overlayNetworkId]) {
+            overlayNetworkContainers[overlayNetworkId] = [];
+          }
+          
+          // 전체 레이아웃에서의 상대적 위치 계산
+          const absoluteX = containerX + (layoutConfig.containerWidth * (idx + 1)) / (overlayConnections.length + 1);
+          const relativeX = (absoluteX - layoutConfig.startX) / layoutInfo.totalWidth;
+          
+          overlayNetworkContainers[overlayNetworkId].push({
+            containerId,
+            xPosition: relativeX
+          });
+        });
+      }
+      
       // 컨테이너에 핸들 위치 정보 추가
       const containerWithHandles: ContainerData = {
         ...container,
         handlePositions: {
-          gwbridgeOut: 0.5  // 중앙 위치 (0.5 = 50%)
+          gwbridgeOut: 0.5,  // 중앙 위치 (0.5 = 50%)
+          overlayIn: overlayConnections.reduce((acc, network, idx) => {
+            acc[network.name] = (idx + 1) / (overlayConnections.length + 1);
+            return acc;
+          }, {} as Record<string, number>)
         }
       };
       
@@ -188,6 +214,80 @@ export const calculateLayout = (
       });
     });
   });
+  
+  // 관련 정보 레이아웃 정보에 저장
+  layoutInfo.containerToOverlay = containerToOverlay;
+  layoutInfo.overlayNetworkContainers = overlayNetworkContainers;
+  
+  // 4. Overlay 네트워크 배치 (맨 위)
+  const overlayNetworks = networks.filter(n => 
+    n.driver === 'overlay' && n.name !== 'ingress' && !n.name.includes('gwbridge')
+  );
+  
+  // 실제 배치할 네트워크만 필터링 (연결된 컨테이너가 있는 네트워크 우선)
+  const networksToPlace = [...overlayNetworks].sort((a, b) => {
+    const aId = `network-${a.name}`;
+    const bId = `network-${b.name}`;
+    
+    // 연결된 컨테이너가 있는 네트워크 우선 배치
+    const aConnections = overlayNetworkContainers[aId]?.length || 0;
+    const bConnections = overlayNetworkContainers[bId]?.length || 0;
+    
+    return bConnections - aConnections; // 내림차순 정렬
+  });
+  
+  // Overlay 네트워크 배치
+  networksToPlace.forEach((network, index) => {
+    // 네트워크 ID 계산
+    const networkId = `network-${network.name}`;
+    
+    // 해당 네트워크에 연결된 컨테이너 핸들 정보 가져오기
+    const containerHandles = overlayNetworkContainers[networkId] || [];
+    
+    // Overlay 네트워크에 핸들 위치 정보 추가
+    const networkWithHandles: NetworkData = {
+      ...network,
+      id: networkId,
+      containerHandles: containerHandles
+    };
+    
+    // 각 Overlay 네트워크의 Y 좌표를 명확하게 구분
+    // 각 네트워크 사이에 충분한 간격(layerGap)을 둠
+    const overlayY = layoutInfo.layerYPositions.overlay + 
+      index * (layoutConfig.overlayNetworkHeight + layoutConfig.layerGap);
+    
+    nodes.push({
+      id: networkId,
+      type: 'networkNode',
+      position: { 
+        x: layoutConfig.startX, 
+        y: overlayY
+      },
+      data: networkWithHandles,
+      style: { 
+        width: layoutInfo.totalWidth,
+        height: layoutConfig.overlayNetworkHeight 
+      }
+    });
+  });
+  
+  // 5. Ingress 네트워크 배치 (Overlay 아래)
+  const ingressNetwork = networks.find(n => n.name === 'ingress');
+  if (ingressNetwork) {
+    nodes.push({
+      id: ingressNetwork.id,
+      type: 'networkNode',
+      position: { 
+        x: layoutConfig.startX, 
+        y: layoutInfo.layerYPositions.ingress 
+      },
+      data: ingressNetwork,
+      style: { 
+        width: layoutInfo.totalWidth,
+        height: layoutConfig.ingressNetworkHeight 
+      }
+    });
+  }
   
   // 6. 각 노드별 GWBridge 네트워크 배치 (컨테이너 아래)
   const gwbridgeNetworks = networks.filter(n => 
