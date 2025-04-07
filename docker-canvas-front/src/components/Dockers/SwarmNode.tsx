@@ -71,56 +71,15 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
   // 노드 너비 (고정값, CSS 스타일과 일치해야 함)
   const nodeWidth = 400; // 예시 값, 실제 스타일에 맞게 조정 필요
   
-  // 상단 핸들 렌더링 (컨테이너 연결용)
+  // 상단 핸들 렌더링 (GWBridge 연결용만 유지)
   const renderTopHandles = () => {
-    if (containerCount === 0) {
-      // 컨테이너가 없어도 기본 핸들 하나는 제공
-      return (
-        <Handle
-          type="source"
-          position={Position.Top}
-          id="container-out-default"
-          style={{ 
-            background: '#90CDF4', 
-            width: '8px', 
-            height: '8px', 
-            left: '50%' 
-          }}
-        />
-      );
-    }
-    
-    // 컨테이너 수에 맞게 핸들 생성
-    return Array.from({ length: containerCount }).map((_, index) => {
-      // 노드 너비에 맞게 핸들 위치 계산 (space-around 방식)
-      const spacing = nodeWidth / (containerCount + 1);
-      const position = spacing * (index + 1);
-      
-      return (
-        <Handle
-          key={`container-${index}`}
-          type="source"
-          position={Position.Top}
-          id={`container-out-${index}`}
-          style={{ 
-            background: '#90CDF4', 
-            width: '8px', 
-            height: '8px',
-            left: `${position}px`
-          }}
-        />
-      );
-    });
-  };
-  
-  // 하단 핸들 렌더링 (네트워크 연결용)
-  const renderBottomHandles = () => {
-    // 일반적으로 노드당 1개의 GWBridge 연결
+    // Swarm과 연결된 컨테이너만 표시하므로 컨테이너 연결용 핸들은 제거
+    // GWBridge 연결용 핸들만 추가
     return (
       <Handle
-        type="target"
-        position={Position.Bottom}
-        id="gwbridge-in"
+        type="source"
+        position={Position.Top}
+        id="gwbridge-out"
         style={{ 
           background: '#90CDF4', 
           width: '8px', 
@@ -131,6 +90,13 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
     );
   };
 
+  // 하단 핸들 렌더링 함수도 수정 - 이제 필요하지 않을 수 있음
+  const renderBottomHandles = () => {
+    // Swarm에서는 Node가 GWBridge와만 연결되고, 
+    // 컨테이너는 GWBridge나 Overlay와 연결되므로
+    // Node 하단에는 핸들이 필요 없음
+    return null;
+  };
   return (
     <div
       className={`

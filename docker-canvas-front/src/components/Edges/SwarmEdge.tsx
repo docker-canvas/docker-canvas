@@ -1,3 +1,6 @@
+// src/components/Edges/SwarmEdge.tsx
+// VXLAN 타입만 라벨을 표시하도록 수정
+
 import React from 'react';
 import { 
   EdgeProps, 
@@ -19,7 +22,8 @@ export type SwarmEdgeType = 'default' | 'vxlan';
  * 
  * 엣지 타입:
  * - default: 일반 네트워크 연결 (실선, 회색)
- * - vxlan: VXLAN 가상 연결 (붉은색 점선)
+ * - vxlan: VXLAN 가상 연결 (붉은색 점선) - 라벨 표시
+ * - ingress: Ingress 네트워크 연결 (주황색 실선)
  * 
  * 모든 엣지는 요구사항에 맞게 수직 직선으로만 연결됩니다.
  */
@@ -46,8 +50,7 @@ const SwarmEdge: React.FC<EdgeProps> = ({
   });
 
   // 엣지 타입에 따른 스타일 계산
-  // SwarmEdge.tsx의 getEdgeStyle() 메서드 내부 수정
-const getEdgeStyle = () => {
+  const getEdgeStyle = () => {
     // 기본 타입 (default) - 회색 실선
     let edgeStyle = {
       stroke: '#555',
@@ -55,7 +58,7 @@ const getEdgeStyle = () => {
       ...style,
     };
   
-    // vxlan 타입만 특별 처리하고 나머지는 기본 스타일 유지
+    // 타입별 스타일 적용
     switch (data?.edgeType) {
       case 'vxlan':
         // VXLAN 타입 - 붉은색 점선
@@ -67,7 +70,7 @@ const getEdgeStyle = () => {
         break;
       
       default:
-        // 모든 다른 네트워크 연결은 기본 실선 유지
+        // 기본 타입 - 회색 실선 유지
         break;
     }
     
@@ -75,11 +78,11 @@ const getEdgeStyle = () => {
     if (selected) {
       edgeStyle.strokeWidth = 3;
       
-      // vxlan 타입에만 다른 강조 색상 적용
+      // 타입별로 다른 강조 색상 적용
       if (data?.edgeType === 'vxlan') {
         edgeStyle.stroke = '#C53030'; // 더 진한 붉은색
       } else {
-        edgeStyle.stroke = '#000'; // 다른 모든 타입은 검은색으로 강조
+        edgeStyle.stroke = '#000'; // 기본 타입은 검은색으로 강조
       }
     }
     
@@ -100,7 +103,7 @@ const getEdgeStyle = () => {
     if (data?.edgeType === 'vxlan') {
       edgeStyle.stroke = '#C53030'; // 더 진한 붉은색
     } else if (data?.edgeType === 'ingress') {
-      edgeStyle.stroke = '#C05621'; // 더 진한 주황색
+      edgeStyle.stroke = '#C05621'; // A' 접 싙긐탅ㅎ색
     } else {
       edgeStyle.stroke = '#000'; // 일반 타입은 검은색
     }
@@ -108,7 +111,7 @@ const getEdgeStyle = () => {
 
   // 라벨 스타일 계산
   const getLabelStyle = () => {
-    let labelStyle = {
+    return {
       position: 'absolute',
       transform: `translate(-50%, -50%) translate(${centerX}px,${centerY}px)`,
       fontSize: 12,
@@ -116,16 +119,8 @@ const getEdgeStyle = () => {
       backgroundColor: 'rgba(255, 255, 255, 0.75)',
       padding: '2px 4px',
       borderRadius: 4,
+      color: data?.edgeType === 'vxlan' ? '#C53030' : '#000',
     } as React.CSSProperties;
-    
-    // 타입별로 다른 색상 적용
-    if (data?.edgeType === 'vxlan') {
-      labelStyle.color = '#C53030'; // 붉은색
-    } else if (data?.edgeType === 'ingress') {
-      labelStyle.color = '#C05621'; // 주황색
-    }
-    
-    return labelStyle;
   };
 
   return (
@@ -139,8 +134,8 @@ const getEdgeStyle = () => {
         onMouseLeave={() => setIsHovered(false)}
       />
       
-      {/* 엣지 데이터가 있고 라벨이 있는 경우 라벨 표시 */}
-      {data?.label && (
+      {/* VXLAN 타입의 엣지만 라벨 표시 */}
+      {data?.edgeType === 'vxlan' && data?.label && (
         <EdgeLabelRenderer>
           <div
             style={getLabelStyle()}

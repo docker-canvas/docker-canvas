@@ -86,62 +86,15 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
   const renderHandles = () => {
     // GWBridge 네트워크인 경우
     if (data.driver === 'gwbridge' || data.name.includes('gwbridge')) {
-      // 컨테이너 핸들 정보가 있는 경우 해당 위치에 개별 핸들 생성
-      if (data.containerHandles && data.containerHandles.length > 0) {
-        // 상단 핸들들 (각 컨테이너에 대응)
-        const topHandles = data.containerHandles.map((handleInfo, index) => (
-          <Handle
-            key={`container-handle-${index}`}
-            type="target"
-            position={Position.Top}
-            id={`handle-${handleInfo.containerId}`}
-            style={{ 
-              background: '#63B3ED', 
-              width: '8px', 
-              height: '8px',
-              left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
-            }}
-          />
-        ));
-        
-        // 하단 핸들 (노드 연결용) - 단일 핸들
-        const bottomHandle = (
-          <Handle
-            key="gwbridge-out"
-            type="source"
-            position={Position.Bottom}
-            id="gwbridge-out"
-            style={{ 
-              background: '#63B3ED', 
-              width: '8px', 
-              height: '8px',
-              left: '50%' 
-            }}
-          />
-        );
-        
-        return [...topHandles, bottomHandle];
-      }
-      
-      // 기본 핸들 (정보가 없는 경우)
-      return [
+      const handles = [];
+
+      // 노드에서 오는 연결을 받는 하단 핸들
+      handles.push(
         <Handle
           key="gwbridge-in"
           type="target"
-          position={Position.Top}
-          id="gwbridge-in"
-          style={{ 
-            background: '#63B3ED', 
-            width: '8px', 
-            height: '8px',
-            left: '50%'  // 중앙에 위치
-          }}
-        />,
-        <Handle
-          key="gwbridge-out"
-          type="source"
           position={Position.Bottom}
-          id="gwbridge-out"
+          id="gwbridge-in"
           style={{ 
             background: '#63B3ED', 
             width: '8px', 
@@ -149,7 +102,46 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
             left: '50%' 
           }}
         />
-      ];
+      );
+
+      // 컨테이너 핸들 정보가 있는 경우 해당 위치에 개별 핸들 생성
+      if (data.containerHandles && data.containerHandles.length > 0) {
+        // 각 컨테이너에 대응하는 상단 핸들들
+        data.containerHandles.forEach((handleInfo, index) => {
+          handles.push(
+            <Handle
+              key={`container-handle-${index}`}
+              type="target"
+              position={Position.Top}
+              id={`handle-${handleInfo.containerId}`}
+              style={{ 
+                background: '#63B3ED', 
+                width: '8px', 
+                height: '8px',
+                left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+              }}
+            />
+          );
+        });
+      } else {
+        // 컨테이너 핸들 정보가 없는 경우 기본 상단 핸들 추가
+        handles.push(
+          <Handle
+            key="gwbridge-top-default"
+            type="target"
+            position={Position.Top}
+            id="gwbridge-top-default"
+            style={{ 
+              background: '#63B3ED', 
+              width: '8px', 
+              height: '8px',
+              left: '50%'  // 중앙에 위치
+            }}
+          />
+        );
+      }
+
+      return handles;
     }
     
     // External 네트워크인 경우 - 상단에만 핸들
