@@ -3,14 +3,17 @@ import ReactFlow, {
   Controls, 
   Background, 
   useNodesState, 
+  useEdgesState,
   useReactFlow,
   Node,
+  Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ToolBar from './ToolBar';
 import nodeTypes from '../types/nodeType';
+import edgeTypes from '../types/edgeType';
 import { sampleNodes, sampleNetworks } from '../data/sampleData';
-import { calculateLayout } from './layoutCalculator';
+import { generateLayout } from './layoutEngine';
 
 /**
  * Canvas 컴포넌트
@@ -31,6 +34,7 @@ import { calculateLayout } from './layoutCalculator';
 const Canvas: React.FC = () => {
   // ReactFlow 노드와 엣지 상태 관리
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [activeMode, setActiveMode] = useState('hand');
   
   // ResizeObserver 오류 방지를 위한 초기화 상태 추가
@@ -43,14 +47,18 @@ const Canvas: React.FC = () => {
   useEffect(() => {
     // ResizeObserver 오류 방지를 위한 지연 초기화
     const timer = setTimeout(() => {
-      // 레이아웃 계산 함수를 사용하여 노드, 컨테이너, 네트워크 배치
-      const layoutedNodes = calculateLayout(sampleNodes, sampleNetworks);
+      // 레이아웃 엔진을 사용하여 노드와 엣지 생성
+      const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
+      
+      // 노드와 엣지 설정
       setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+      
       setInitialized(true);
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [setNodes]);
+  }, [setNodes, setEdges]);
   
   // 초기화 후 fitView 실행
   useEffect(() => {
@@ -80,9 +88,12 @@ const Canvas: React.FC = () => {
   
   // 리프레시 핸들러 (노드와 엣지 초기화)
   const handleRefresh = () => {
-    // 노드 및 컨테이너 재배치
-    const layoutedNodes = calculateLayout(sampleNodes, sampleNetworks);
+    // 레이아웃 엔진을 사용하여 노드와 엣지 재생성
+    const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
+    
+    // 노드와 엣지 업데이트
     setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
     
     // 뷰 리셋
     setTimeout(() => {
@@ -92,6 +103,7 @@ const Canvas: React.FC = () => {
 
   return (
     <div className="w-full h-screen relative" ref={containerRef}>
+      {/* 툴바 컴포넌트 - 줌인/줌아웃, 패닝 모드, 새로고침 기능 제공 */}
       <ToolBar 
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -99,18 +111,27 @@ const Canvas: React.FC = () => {
         onRefresh={handleRefresh}
         activeMode={activeMode}
       />
+      
+      {/* ReactFlow 캔버스 래퍼 */}
       <div className="react-flow-wrapper" style={{ width: '100%', height: '100%', position: 'relative' }}>
         <ReactFlow
           nodes={nodes}
+          edges={edges}
           onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
-          nodesDraggable={false}
-          fitView={false} // 초기 fitView 비활성화, useEffect에서 수동으로 호출
-          minZoom={0.1}
-          maxZoom={2}
+          edgeTypes={edgeTypes}
+          nodesDraggable={false}  // 노드 드래그 비활성화 (레이아웃 유지)
+          fitView={false}         // 초기 fitView 비활성화, useEffect에서 수동으로 호출
+          minZoom={0.1}           // 최소 줌 레벨
+          maxZoom={2}             // 최대 줌 레벨
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          connectOnClick={false}  // 클릭으로 연결 비활성화
         >
+          {/* 기본 컨트롤 패널 (줌, 패닝 등) */}
           <Controls showInteractive={false} />
+          
+          {/* 배경 그리드 패턴 */}
           <Background color="#aaa" gap={16} />
         </ReactFlow>
       </div>

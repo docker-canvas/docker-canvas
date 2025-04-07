@@ -17,6 +17,12 @@ export interface ContainerNetwork {
   aliases?: string[]; // 네트워크 별칭
 }
 
+// 핸들 위치 정보 인터페이스
+export interface HandlePositions {
+  gwbridgeOut?: number; // GWBridge 연결 출력 핸들 위치 (X 좌표)
+  overlayIn?: Record<string, number>; // Overlay 네트워크 핸들 위치
+}
+
 // 컨테이너 데이터 인터페이스 정의
 export interface ContainerData {
   id: string;                       // 컨테이너 ID
@@ -28,4 +34,5 @@ export interface ContainerData {
   command?: string;                 // 실행 명령어
   createdAt?: string;               // 생성 일시
   labels?: Record<string, string>;  // 컨테이너 라벨
+  handlePositions?: HandlePositions; // 핸들 위치 정보 (레이아웃 계산기에서 설정)
 }

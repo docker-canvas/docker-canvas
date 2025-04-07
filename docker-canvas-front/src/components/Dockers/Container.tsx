@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Handle, Position } from 'reactflow';
 import { ContainerData, ContainerNetwork } from '../types/container';
 import './Container.css';
 
@@ -21,6 +22,7 @@ interface ContainerProps {
  * - 컨테이너 상태에 따라 다른 상태 표시기 적용
  * - 호버 시 상세 정보 표시
  * - 가로로 배치되도록 설계
+ * - 상단/하단 핸들을 통해 네트워크와 연결 가능
  */
 const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -42,6 +44,55 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
 
   // 컨테이너 ID를 짧게 표시 (처음 12자리만)
   const shortId = data.id.substring(0, 12);
+  
+  // 컨테이너가 연결되는 네트워크 타입 분류
+  const overlayNetworks = data.networks.filter(network => network.driver === 'overlay');
+  const bridgeNetworks = data.networks.filter(network => network.driver === 'bridge' || network.driver === 'gwbridge');
+  
+  // 상단 핸들 (Overlay 네트워크 연결용)
+  const renderTopHandles = () => {
+    if (overlayNetworks.length === 0) return null;
+    
+    return overlayNetworks.map((network, index) => {
+      // 컴포넌트 너비에 맞게 핸들 위치 계산 (space-around 방식)
+      const spacing = 120 / (overlayNetworks.length + 1);
+      const position = spacing * (index + 1);
+      
+      return (
+        <Handle
+          key={`overlay-${index}`}
+          type="target"
+          position={Position.Top}
+          id={`overlay-in-${network.name}`}
+          style={{ 
+            background: '#4299E1', 
+            width: '8px', 
+            height: '8px',
+            left: `${position}px`
+          }}
+        />
+      );
+    });
+  };
+  
+  // 하단 핸들 (Bridge/GWBridge 연결용)
+  const renderBottomHandles = () => {
+    // 항상 중앙에 핸들 하나 제공
+    return (
+      <Handle
+        key="gwbridge-out"
+        type="source"
+        position={Position.Bottom}
+        id="gwbridge-out"
+        style={{ 
+          background: '#4299E1', 
+          width: '8px', 
+          height: '8px',
+          left: '50%'  // 중앙에 위치
+        }}
+      />
+    );
+  };
 
   return (
     <div 
@@ -59,10 +110,18 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* 네트워크 연결을 위한 핸들 */}
+      {renderTopHandles()}
+      {renderBottomHandles()}
 
       {/* 컴포넌트 타입 표시 (오른쪽 아래) */}
       <div className="absolute bottom-0 right-1 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded" style={{ fontSize: '0.65rem' }}>
         {data.name}
+      </div>
+      
+      {/* 상태 표시기 (왼쪽 상단) */}
+      <div className="absolute top-1 left-1 flex items-center">
+        <span className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusColor()}`}></span>
       </div>
       
       {/* 호버 시 표시되는 상세 정보 */}

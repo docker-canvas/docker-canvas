@@ -22,6 +22,12 @@ export interface NetworkInterface {
   gateway?: string;     // 게이트웨이
 }
 
+// 컨테이너 핸들 연결 정보 (위치 정보 포함)
+export interface ContainerHandleInfo {
+  containerId: string;   // 연결된 컨테이너 ID
+  xPosition: number;     // 핸들 X 좌표의 상대적 위치 (0~1 사이 값)
+}
+
 // 네트워크 데이터 인터페이스 정의
 export interface NetworkData {
   id: string;                       // 네트워크 ID
@@ -34,6 +40,7 @@ export interface NetworkData {
   internal?: boolean;               // 내부 네트워크 여부
   labels?: Record<string, string>;  // 네트워크 라벨
   createdAt?: string;               // 생성 일시
+  containerHandles?: ContainerHandleInfo[];  // 컨테이너 핸들 정보 - 레이아웃 계산기에서 설정
 }
 
 // 네트워크 위치 및 크기 정보를 정의하는 인터페이스

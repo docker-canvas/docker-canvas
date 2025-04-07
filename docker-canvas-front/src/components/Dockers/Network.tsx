@@ -1,15 +1,15 @@
 import React, { memo, useState } from 'react';
-import { Position } from 'reactflow';
-import { NetworkData, NetworkDriver, NetworkType } from '../types/network';
+import { Handle, Position } from 'reactflow';
+import { NetworkData, NetworkDriver, NetworkType, ContainerHandleInfo } from '../types/network';
 import './Network.css';
 
 /**
  * Network 속성 인터페이스
  * ReactFlow 노드 컴포넌트에 필요한 속성을 정의합니다.
  */
-interface NetworkProps {
+export interface NetworkProps {
   data: NetworkData;   // 네트워크 데이터
-  selected: boolean;   // 노드 선택 상태
+  selected?: boolean;   // 노드 선택 상태 (선택적 속성으로 변경)
 }
 
 /**
@@ -22,11 +22,9 @@ interface NetworkProps {
  * - 네트워크 드라이버(overlay, gwbridge 등)에 따라 다른 스타일 적용
  * - 네트워크 이름 및 기본 정보 표시
  * - 호버 시 상세 정보 표시
- * - 노드 배치 규칙에 따라 다른 배치 방식 적용
- *   - ingress: 컨테이너 집합 위에 배치
- *   - gwbridge: 노드 위, 컨테이너 아래 배치
+ * - 동적으로 계산된 핸들 위치로 수직 연결 보장
  */
-const Network: React.FC<NetworkProps> = ({ data, selected }) => {
+const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
   // 호버 상태 관리
   const [isHovered, setIsHovered] = useState(false);
   
@@ -98,6 +96,126 @@ const Network: React.FC<NetworkProps> = ({ data, selected }) => {
     // 기본 높이
     return 80;
   };
+  
+  // 연결 유형에 따른 핸들 렌더링
+  const renderHandles = () => {
+    // GWBridge 네트워크인 경우
+    if (data.driver === 'gwbridge' || data.name.includes('gwbridge')) {
+      // 컨테이너 핸들 정보가 있는 경우 해당 위치에 개별 핸들 생성
+      if (data.containerHandles && data.containerHandles.length > 0) {
+        // 상단 핸들들 (각 컨테이너에 대응)
+        const topHandles = data.containerHandles.map((handleInfo, index) => (
+          <Handle
+            key={`container-handle-${index}`}
+            type="target"
+            position={Position.Top}
+            id={`handle-${handleInfo.containerId}`}
+            style={{ 
+              background: '#63B3ED', 
+              width: '8px', 
+              height: '8px',
+              left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+            }}
+          />
+        ));
+        
+        // 하단 핸들 (노드 연결용) - 단일 핸들
+        const bottomHandle = (
+          <Handle
+            key="gwbridge-out"
+            type="source"
+            position={Position.Bottom}
+            id="gwbridge-out"
+            style={{ 
+              background: '#63B3ED', 
+              width: '8px', 
+              height: '8px',
+              left: '50%' 
+            }}
+          />
+        );
+        
+        return [...topHandles, bottomHandle];
+      }
+      
+      // 기본 핸들 (정보가 없는 경우)
+      return [
+        <Handle
+          key="gwbridge-in"
+          type="target"
+          position={Position.Top}
+          id="gwbridge-in"
+          style={{ 
+            background: '#63B3ED', 
+            width: '8px', 
+            height: '8px',
+            left: '50%'  // 중앙에 위치
+          }}
+        />,
+        <Handle
+          key="gwbridge-out"
+          type="source"
+          position={Position.Bottom}
+          id="gwbridge-out"
+          style={{ 
+            background: '#63B3ED', 
+            width: '8px', 
+            height: '8px',
+            left: '50%' 
+          }}
+        />
+      ];
+    }
+    
+    // External 네트워크인 경우 - 상단에만 핸들
+    if (data.type === 'external') {
+      return (
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="external-in"
+          style={{ 
+            background: '#9F7AEA', 
+            width: '8px', 
+            height: '8px',
+            left: '50%' 
+          }}
+        />
+      );
+    }
+    
+    // Ingress 네트워크인 경우
+    if (data.name === 'ingress') {
+      return (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="ingress-out-0"
+          style={{ 
+            background: '#F6AD55', 
+            width: '8px', 
+            height: '8px',
+            left: '50%'  // 중앙에 위치
+          }}
+        />
+      );
+    }
+    
+    // 기본 Overlay 네트워크
+    return (
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="overlay-in"
+        style={{ 
+          background: '#4FD1C5', 
+          width: '8px', 
+          height: '8px',
+          left: '50%' 
+        }}
+      />
+    );
+  };
 
   return (
     <div
@@ -117,6 +235,8 @@ const Network: React.FC<NetworkProps> = ({ data, selected }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* 동적으로 계산된 핸들 렌더링 */}
+      {renderHandles()}
       
       {/* 네트워크 타입 표시 (오른쪽 아래) */}
       <div className="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded">
@@ -173,5 +293,4 @@ const Network: React.FC<NetworkProps> = ({ data, selected }) => {
   );
 };
 
-// memo를 사용하여 불필요한 리렌더링 방지
 export default memo(Network);
