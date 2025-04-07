@@ -11,6 +11,7 @@ import ToolBar from './ToolBar';
 import nodeTypes from '../types/nodeType';
 import { sampleNodes, sampleNetworks } from '../data/sampleData';
 import { calculateLayout } from './layoutCalculator';
+import useStreamDockerEvents from '../data/docker-api';
 
 /**
  * Canvas 컴포넌트
@@ -32,6 +33,7 @@ const Canvas: React.FC = () => {
   // ReactFlow 노드와 엣지 상태 관리
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [activeMode, setActiveMode] = useState('hand');
+  const { eventData, loading, error } = useStreamDockerEvents('http://localhost:3001/docker/tasks');
   
   // ResizeObserver 오류 방지를 위한 초기화 상태 추가
   const [initialized, setInitialized] = useState(false);
@@ -80,6 +82,7 @@ const Canvas: React.FC = () => {
   
   // 리프레시 핸들러 (노드와 엣지 초기화)
   const handleRefresh = () => {
+    console.log(eventData);
     // 노드 및 컨테이너 재배치
     const layoutedNodes = calculateLayout(sampleNodes, sampleNetworks);
     setNodes(layoutedNodes);
