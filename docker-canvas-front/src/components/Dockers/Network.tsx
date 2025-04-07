@@ -169,25 +169,8 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
       );
     }
     
-    // Ingress 네트워크인 경우
-    if (data.name === 'ingress') {
-      return (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          id="ingress-out-0"
-          style={{ 
-            background: '#F6AD55', 
-            width: '8px', 
-            height: '8px',
-            left: '50%'  // 중앙에 위치
-          }}
-        />
-      );
-    }
-    
-    // Overlay 네트워크인 경우 (Ingress 제외)
-    if (data.driver === 'overlay' && data.name !== 'ingress') {
+    // Overlay 네트워크인 경우
+    if (data.driver === 'overlay') {
       // 연결된 컨테이너 핸들 정보가 있는 경우
       if (data.containerHandles && data.containerHandles.length > 0) {
         return data.containerHandles.map((handleInfo, index) => (

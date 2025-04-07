@@ -46,14 +46,10 @@ export const calculateEdges = (
     (node.data.driver === 'gwbridge' || node.data.name.includes('gwbridge'))
   );
   
-  const ingressNetwork = layoutedNodes.find(
-    node => node.type === 'networkNode' && node.data.name === 'ingress'
-  );
   
   const overlayNetworks = layoutedNodes.filter(
     node => node.type === 'networkNode' && 
     node.data.driver === 'overlay' && 
-    node.data.name !== 'ingress' && 
     !node.data.name.includes('gwbridge')
   );
   

@@ -47,7 +47,7 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
   const shortId = data.id.substring(0, 12);
   
   // 컨테이너가 연결되는 네트워크 타입 분류
-  const overlayNetworks = data.networks.filter(network => network.driver === 'overlay' && network.name !== 'ingress');
+  const overlayNetworks = data.networks.filter(network => network.driver === 'overlay');
   const bridgeNetworks = data.networks.filter(network => network.driver === 'bridge' || network.driver === 'gwbridge');
   
   // 상단 핸들 (Overlay 네트워크 연결용)

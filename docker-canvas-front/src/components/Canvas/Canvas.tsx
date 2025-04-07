@@ -14,6 +14,7 @@ import nodeTypes from '../types/nodeType';
 import edgeTypes from '../types/edgeType';
 import { sampleNodes, sampleNetworks } from '../data/sampleData';
 import { generateLayout } from './layoutEngine';
+import { simpleSampleNetworks, simpleSampleNodes } from '../data/simpleSampleData';
 
 /**
  * Canvas 컴포넌트
@@ -48,7 +49,8 @@ const Canvas: React.FC = () => {
     // ResizeObserver 오류 방지를 위한 지연 초기화
     const timer = setTimeout(() => {
       // 레이아웃 엔진을 사용하여 노드와 엣지 생성
-      const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
+      // const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
+      const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(simpleSampleNodes, simpleSampleNetworks);
       
       // 노드와 엣지 설정
       setNodes(layoutedNodes);
@@ -90,6 +92,7 @@ const Canvas: React.FC = () => {
   const handleRefresh = () => {
     // 레이아웃 엔진을 사용하여 노드와 엣지 재생성
     const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
+    
     
     // 노드와 엣지 업데이트
     setNodes(layoutedNodes);
