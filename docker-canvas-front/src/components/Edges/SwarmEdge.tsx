@@ -9,7 +9,7 @@ import {
  * 엣지 타입 정의
  * 각 연결 타입에 따라 다른 스타일을 적용합니다.
  */
-export type SwarmEdgeType = 'default' | 'vxlan' | 'ingress';
+export type SwarmEdgeType = 'default' | 'vxlan';
 
 /**
  * SwarmEdge 컴포넌트
@@ -47,15 +47,16 @@ const SwarmEdge: React.FC<EdgeProps> = ({
   });
 
   // 엣지 타입에 따른 스타일 계산
-  const getEdgeStyle = () => {
+  // SwarmEdge.tsx의 getEdgeStyle() 메서드 내부 수정
+const getEdgeStyle = () => {
     // 기본 타입 (default) - 회색 실선
     let edgeStyle = {
       stroke: '#555',
       strokeWidth: 2,
       ...style,
     };
-
-    // 데이터에서 지정된 타입에 따라 스타일 적용
+  
+    // vxlan 타입만 특별 처리하고 나머지는 기본 스타일 유지
     switch (data?.edgeType) {
       case 'vxlan':
         // VXLAN 타입 - 붉은색 점선
@@ -65,18 +66,9 @@ const SwarmEdge: React.FC<EdgeProps> = ({
           strokeDasharray: '5, 5', // 점선 패턴
         };
         break;
-        
-      case 'ingress':
-        // Ingress 타입 - 주황색 대시
-        edgeStyle = {
-          ...edgeStyle,
-          stroke: '#ED8936', // 주황색
-          strokeDasharray: '10, 5', // 긴 대시 패턴
-        };
-        break;
-        
+      
       default:
-        // 기본값은 그대로 사용
+        // 모든 다른 네트워크 연결은 기본 실선 유지
         break;
     }
     
@@ -84,13 +76,11 @@ const SwarmEdge: React.FC<EdgeProps> = ({
     if (selected) {
       edgeStyle.strokeWidth = 3;
       
-      // 타입별로 다른 색상 적용
+      // vxlan 타입에만 다른 강조 색상 적용
       if (data?.edgeType === 'vxlan') {
         edgeStyle.stroke = '#C53030'; // 더 진한 붉은색
-      } else if (data?.edgeType === 'ingress') {
-        edgeStyle.stroke = '#C05621'; // 더 진한 주황색
       } else {
-        edgeStyle.stroke = '#000'; // 일반 타입은 검은색
+        edgeStyle.stroke = '#000'; // 다른 모든 타입은 검은색으로 강조
       }
     }
     
