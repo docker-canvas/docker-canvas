@@ -81,22 +81,6 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
     if (data.driver === 'gwbridge' || data.name.includes('gwbridge')) return 'gwbridge';
     return 'docker';
   };
-
-  // 네트워크의 높이는 유형에 따라 다르게 설정
-  const getNetworkHeight = () => {
-    // Ingress 또는 External 네트워크는 더 얇게
-    if (data.name === 'ingress' || data.type === 'external') {
-      return 40;
-    }
-    
-    // GWBridge 네트워크는 중간 높이
-    if (data.driver === 'gwbridge' || data.name.includes('gwbridge')) {
-      return 60;
-    }
-    
-    // 기본 높이
-    return 80;
-  };
   
   // 연결 유형에 따른 핸들 렌더링
   const renderHandles = () => {
@@ -263,7 +247,6 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
         ${getNetworkTypeClass()}
       `}
       style={{
-        height: `${getNetworkHeight()}px`,
         background: networkTypeStyles.background,
         borderColor: networkTypeStyles.borderColor,
         color: 'white',

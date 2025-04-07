@@ -79,23 +79,25 @@ export const calculateLayout = (
     }
   });
   
-  // 2. 레이어별 Y 위치 계산 (위에서 아래로)
-  
-  // Overlay 레이어 (맨 위 시작)
-  // 여러 Overlay 네트워크를 배치할 수 있도록 충분한 공간 확보
-  layoutInfo.layerYPositions.overlay = layoutConfig.startY + 50;
-  
-  // Overlay 네트워크 개수 파악
+    // 2. 레이어별 Y 위치 계산 (위에서 아래로)
+    // Overlay 레이어 (맨 위 시작)
+  layoutInfo.layerYPositions.overlay = layoutConfig.startY;
+
+  // Overlay 네트워크 개수 계산
   const overlayNetworkCount = networks.filter(n => 
     n.driver === 'overlay' && n.name !== 'ingress' && !n.name.includes('gwbridge')
-  ).length;
-  
-  // Ingress 레이어 (모든 Overlay 네트워크 아래)
-  // 각 Overlay 마다 네트워크 높이 + 레이어 간격 만큼 추가
+  );
+
+  // Overlay 레이어의 총 높이 계산 (네트워크 개수 * 높이 + 각 네트워크 사이의 간격)
+  const overlayLayerHeight = 
+  overlayNetworkCount.length * layoutConfig.overlayNetworkHeight + 
+    (overlayNetworkCount.length > 1 ? (overlayNetworkCount.length - 1) * layoutConfig.layerGap : 0);
+
+  // Ingress 레이어 (Overlay 아래)
   layoutInfo.layerYPositions.ingress = 
-    layoutInfo.layerYPositions.overlay + 
-    (overlayNetworkCount * layoutConfig.overlayNetworkHeight) + 
-    (overlayNetworkCount * layoutConfig.layerGap);
+    layoutInfo.layerYPositions.overlay + overlayLayerHeight + layoutConfig.layerGap;
+
+
   
   // 컨테이너 레이어 (Ingress 아래)
   // Ingress가 없으면 바로 Overlay 아래에 배치
