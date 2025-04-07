@@ -20,7 +20,6 @@ export type SwarmEdgeType = 'default' | 'vxlan';
  * 엣지 타입:
  * - default: 일반 네트워크 연결 (실선, 회색)
  * - vxlan: VXLAN 가상 연결 (붉은색 점선)
- * - ingress: Ingress 네트워크 연결 (주황색 대시)
  * 
  * 모든 엣지는 요구사항에 맞게 수직 직선으로만 연결됩니다.
  */

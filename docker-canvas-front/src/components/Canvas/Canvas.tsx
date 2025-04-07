@@ -49,8 +49,8 @@ const Canvas: React.FC = () => {
     // ResizeObserver 오류 방지를 위한 지연 초기화
     const timer = setTimeout(() => {
       // 레이아웃 엔진을 사용하여 노드와 엣지 생성
-      // const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
-      const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(simpleSampleNodes, simpleSampleNetworks);
+      const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
+      // const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(simpleSampleNodes, simpleSampleNetworks);
       
       // 노드와 엣지 설정
       setNodes(layoutedNodes);

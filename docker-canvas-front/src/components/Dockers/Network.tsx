@@ -190,19 +190,7 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
       }
       
       // 기본 핸들 (정보가 없는 경우) - 중앙에 하나
-      return (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          id="overlay-out"
-          style={{ 
-            background: '#4FD1C5', 
-            width: '8px', 
-            height: '8px',
-            left: '50%' 
-          }}
-        />
-      );
+      return ;
     }
     
     // 기본 핸들 (일반 네트워크)

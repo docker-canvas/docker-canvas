@@ -34,3 +34,7 @@ body {
   stroke: #000;
   stroke-width: 3;
 }
+
+.react-flow__edge {
+  z-index: 100 !important;
+}
