@@ -27,6 +27,13 @@ interface ContainerProps {
  */
 const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
   const [isHovered, setIsHovered] = useState(false);
+  // 마우스 위치 상태 추가
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // 마우스 위치 업데이트 함수
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  };
 
   // 컨테이너 상태에 따른 스타일 계산
   const getStatusColor = () => {
@@ -101,6 +108,73 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
     );
   };
 
+  // 호버 UI를 body에 직접 추가하는 코드
+  React.useEffect(() => {
+    // 호버 상태가 아니면 아무것도 하지 않음
+    if (!isHovered) return;
+    
+    // 툴팁 요소 생성
+    const tooltip = document.createElement('div');
+    tooltip.className = 'container-tooltip';
+    tooltip.style.position = 'fixed';
+    tooltip.style.left = `${mousePosition.x + 15}px`; // 커서 위치에서 약간 오른쪽
+    tooltip.style.top = `${mousePosition.y}px`;
+    tooltip.style.backgroundColor = 'rgba(26, 32, 44, 0.95)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '10px';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.25)';
+    tooltip.style.zIndex = '10000'; // 매우 높은 z-index
+    tooltip.style.width = '200px';
+    tooltip.style.maxHeight = '300px';
+    tooltip.style.overflow = 'auto';
+    
+    // 툴팁 내용 설정
+    tooltip.innerHTML = `
+      <div class="font-bold mb-1">${data.serviceName || 'Container'}</div>
+      <div class="text-xs text-gray-300 mb-1">${data.image}</div>
+      <div class="text-xs mb-1">ID: ${shortId}</div>
+      
+      <div class="flex items-center my-1">
+        <span class="inline-block w-2 h-2 rounded-full mr-1 ${getStatusColor()}"></span>
+        <span class="text-xs">${data.status}</span>
+      </div>
+      
+      ${data.networks && data.networks.length > 0 ? `
+        <div class="mt-1">
+          <div class="text-xs font-semibold">네트워크:</div>
+          ${data.networks.map((network, index) => `
+            <div class="text-xs text-gray-300 ml-1">
+              ${network.name} (${network.driver})
+              ${network.ipAddress ? ` - ${network.ipAddress}` : ''}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      
+      ${data.ports && data.ports.length > 0 ? `
+        <div class="mt-1">
+          <div class="text-xs font-semibold">포트:</div>
+          <div class="flex flex-wrap">
+            ${data.ports.map((port, index) => `
+              <span class="text-xs bg-blue-700 rounded px-1 mr-1 mb-1">
+                ${port.external}:${port.internal}/${port.protocol}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    `;
+    
+    // body에 툴팁 추가
+    document.body.appendChild(tooltip);
+    
+    // 클린업 함수: 컴포넌트 언마운트 시 툴팁 제거
+    return () => {
+      document.body.removeChild(tooltip);
+    };
+  }, [isHovered, mousePosition, data]);
+
   return (
     <div 
       className={`
@@ -116,6 +190,7 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
       }}
       onMouseEnter={() => setIsHovered(true)}  // 마우스 진입 시 호버 상태 true
       onMouseLeave={() => setIsHovered(false)} // 마우스 이탈 시 호버 상태 false
+      onMouseMove={handleMouseMove} // 마우스 이동 이벤트 추가
     >
       {/* 네트워크 연결을 위한 핸들 */}
       {renderTopHandles()}
@@ -126,57 +201,6 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
         <span className={`inline-block w-3 h-3 rounded-full mr-1.5 ${getStatusColor()}`}></span>
         <span className="font-medium text-white">{data.serviceName}</span>
       </div>
-      
-      {/* 호버 시 표시되는 상세 정보 */}
-      {isHovered && (
-        <div className="container-hover-info absolute z-50 bg-gray-800 bg-opacity-90 text-white p-3 rounded shadow-lg" 
-          style={{ 
-            width: '200px', 
-            left: '50%', 
-            transform: 'translateX(-50%)', 
-            top: '100%',
-            marginTop: '5px'
-          }}>
-          <div className="font-bold mb-1">{data.serviceName}</div>
-          <div className="text-xs text-gray-300 mb-1">{data.image}</div>
-          <div className="text-xs mb-1">ID: {shortId}</div>
-          
-          <div className="flex items-center my-1">
-            <span className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusColor()}`}></span>
-            <span className="text-xs">{data.status}</span>
-          </div>
-          
-          {/* 네트워크 정보 */}
-          {data.networks && data.networks.length > 0 && (
-            <div className="mt-1">
-              <div className="text-xs font-semibold">네트워크:</div>
-              {data.networks.map((network, index) => (
-                <div key={index} className="text-xs text-gray-300 ml-1">
-                  {network.name} ({network.driver})
-                  {network.ipAddress && ` - ${network.ipAddress}`}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* 포트 매핑 정보 */}
-          {data.ports && data.ports.length > 0 && (
-            <div className="mt-1">
-              <div className="text-xs font-semibold">포트:</div>
-              <div className="flex flex-wrap">
-                {data.ports.map((port, index) => (
-                  <span 
-                    key={index} 
-                    className="text-xs bg-blue-700 rounded px-1 mr-1 mb-1"
-                  >
-                    {port.external}:{port.internal}/{port.protocol}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
