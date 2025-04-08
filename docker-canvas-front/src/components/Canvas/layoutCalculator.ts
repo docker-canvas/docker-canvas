@@ -13,6 +13,28 @@ import { layoutConfig } from './layoutConfig';
 import { NodeLayoutInfo } from '../types/layoutTypes';
 
 /**
+ * 네트워크 데이터에서 ID로 네트워크를 찾는 유틸리티 함수
+ * 
+ * @param networks 네트워크 데이터 배열
+ * @param networkId 찾을 네트워크 ID
+ * @returns 찾은 네트워크 데이터 또는 undefined
+ */
+const findNetworkById = (networks: NetworkData[], networkId: string): NetworkData | undefined => {
+  return networks.find(network => network.id === networkId);
+};
+
+/**
+ * 네트워크 이름으로 네트워크 데이터를 찾는 유틸리티 함수 (ID가 없을 때 폴백용)
+ * 
+ * @param networks 네트워크 데이터 배열
+ * @param networkName 찾을 네트워크 이름
+ * @returns 찾은 네트워크 데이터 또는 undefined
+ */
+const findNetworkByName = (networks: NetworkData[], networkName: string): NetworkData | undefined => {
+  return networks.find(network => network.name === networkName);
+};
+
+/**
  * 노드, 컨테이너, 네트워크 배치 계산 함수
  * 
  * @param nodeData Docker Swarm 노드 데이터 배열
@@ -92,8 +114,6 @@ export const calculateLayout = (
   layoutInfo.layerYPositions.nodes = 
     layoutInfo.layerYPositions.gwbridge + layoutConfig.gwbridgeNetworkHeight + layoutConfig.layerGap;
   
-  layoutInfo.layerYPositions.external = 
-    layoutInfo.layerYPositions.nodes + layoutConfig.nodeHeight + layoutConfig.layerGap;
   
   // 3. 컨테이너 배치 및 핸들 위치 계산
   nodeData.forEach((node) => {
@@ -130,25 +150,28 @@ export const calculateLayout = (
         containerToOverlay[containerId] = [];
         
         overlayConnections.forEach((network, idx) => {
-          const overlayNetworkId = `network-${network.name}`;
+          // 네트워크 ID가 있으면 ID 사용, 없으면 이름으로 찾기
+          const networkId = network.id || 
+                          (findNetworkByName(networks, network.name)?.id) || 
+                          `network-${network.name}`;
           
           // 컨테이너와 Overlay 네트워크 간 연결 정보 저장
           containerToOverlay[containerId].push({
             containerId,
-            networkId: overlayNetworkId,
-            networkName: network.name,
+            networkId,
+            networkName: network.name, // UI 표시용으로 이름 유지
             xOffset: (idx + 1) / (overlayConnections.length + 1)
           });
           
           // Overlay 네트워크에 컨테이너 핸들 정보 추가
-          if (!overlayNetworkContainers[overlayNetworkId]) {
-            overlayNetworkContainers[overlayNetworkId] = [];
+          if (!overlayNetworkContainers[networkId]) {
+            overlayNetworkContainers[networkId] = [];
           }
           
           const absoluteX = containerX + (layoutConfig.containerWidth * (idx + 1)) / (overlayConnections.length + 1);
           const relativeX = (absoluteX - layoutConfig.startX) / layoutInfo.totalWidth;
           
-          overlayNetworkContainers[overlayNetworkId].push({
+          overlayNetworkContainers[networkId].push({
             containerId,
             xPosition: relativeX
           });
@@ -191,8 +214,8 @@ export const calculateLayout = (
     if (a.name === 'ingress') return 1;
     if (b.name === 'ingress') return -1;
 
-    const aId = `network-${a.name}`;
-    const bId = `network-${b.name}`;
+    const aId = a.id;
+    const bId = b.id;
     
     // 연결된 컨테이너가 있는 네트워크 우선 배치
     const aConnections = overlayNetworkContainers[aId]?.length || 0;
@@ -203,13 +226,12 @@ export const calculateLayout = (
     
   // Overlay 네트워크 배치
   networksToPlace.forEach((network, index) => {
-    const networkId = `network-${network.name}`;
+    const networkId = network.id;
     
     const containerHandles = overlayNetworkContainers[networkId] || [];
     
     const networkWithHandles: NetworkData = {
       ...network,
-      id: networkId,
       containerHandles: containerHandles
     };
     
@@ -233,7 +255,7 @@ export const calculateLayout = (
   
   // 5. 각 노드별 GWBridge 네트워크 배치
   const gwbridgeNetworks = networks.filter(n => 
-    n.driver === 'gwbridge' || n.name.includes('gwbridge')
+    n.driver === 'bridge' || n.name == 'docker_gwbridge'
   );
   
   const useGwbridgeCount = Math.min(nodeData.length, gwbridgeNetworks.length);
@@ -245,6 +267,9 @@ export const calculateLayout = (
     
     const gwbridgeId = `network-gwbridge-${nodeId}`;
     
+    // 해당 ID를 가진 네트워크 찾기
+    const gwbridgeNetwork = gwbridgeNetworks.find(n => n.id === gwbridgeId) || gwbridgeNetworks[i];
+    
     const connectedHandles: ContainerHandleInfo[] = Object.values(layoutInfo.containerToGWBridge)
       .filter(info => info.gwbridgeId === gwbridgeId)
       .map(info => ({
@@ -253,7 +278,7 @@ export const calculateLayout = (
       }));
     
     const gwbridgeWithHandles: NetworkData = {
-      ...gwbridgeNetworks[i],
+      ...gwbridgeNetwork,
       id: gwbridgeId,
       containerHandles: connectedHandles
     };
@@ -288,24 +313,6 @@ export const calculateLayout = (
       style: { width: nodeWidth, height: layoutConfig.nodeHeight }
     });
   });
-  
-  // 7. External 네트워크 배치
-  const externalNetwork = networks.find(n => n.type === 'external');
-  if (externalNetwork) {
-    nodes.push({
-      id: externalNetwork.id,
-      type: 'networkNode',
-      position: { 
-        x: layoutConfig.startX, 
-        y: layoutInfo.layerYPositions.external 
-      },
-      data: externalNetwork,
-      style: { 
-        width: layoutInfo.totalWidth,
-        height: layoutConfig.externalNetworkHeight 
-      }
-    });
-  }
   
   return { nodes, layoutInfo };
 };

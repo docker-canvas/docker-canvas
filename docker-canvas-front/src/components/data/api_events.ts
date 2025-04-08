@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 export function useStreamDockerEvents(url: string) {
-  const [eventData, setEventData] = useState<string[]>([]);
+  const [eventData, setEventData] = useState<object[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

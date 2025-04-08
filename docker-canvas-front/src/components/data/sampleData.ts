@@ -10,6 +10,135 @@ import { NetworkData } from '../types/network';
 import { ContainerData } from '../types/container';
 
 /**
+ * 샘플 네트워크 데이터
+ * 각 네트워크에 고유한 ID 부여
+ */
+export const sampleNetworks: NetworkData[] = [
+  {
+    id: 'network-external',
+    name: 'docker_gwbridge',
+    driver: 'bridge',
+    scope: 'local',
+    networkInfo: {
+      subnet: '192.168.1.0/24',
+      gateway: '192.168.1.1'
+    },
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-ingress',
+    name: 'ingress',
+    driver: 'overlay',
+    scope: 'swarm',
+    networkInfo: {
+      subnet: '10.0.0.0/24',
+      gateway: '10.0.0.1'
+    },
+    attachable: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-app',
+    name: 'app-network',
+    driver: 'overlay',
+    scope: 'swarm',
+    networkInfo: {
+      subnet: '10.0.0.0/24',
+      gateway: '10.0.0.1'
+    },
+    attachable: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-frontend',
+    name: 'frontend-network',
+    driver: 'overlay',
+    scope: 'swarm',
+    networkInfo: {
+      subnet: '10.1.0.0/24',
+      gateway: '10.1.0.1'
+    },
+    attachable: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-backend',
+    name: 'backend-network',
+    driver: 'overlay',
+    scope: 'swarm',
+    networkInfo: {
+      subnet: '10.2.0.0/24',
+      gateway: '10.2.0.1'
+    },
+    attachable: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-gwbridge-node-1',  // 노드 ID를 포함한 고유 ID 사용
+    name: 'docker_gwbridge',
+    driver: 'bridge',
+    scope: 'local',
+    networkInfo: {
+      subnet: '172.18.0.0/16',
+      gateway: '172.18.0.1'
+    },
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-gwbridge-node-2',
+    name: 'docker_gwbridge',
+    driver: 'bridge',
+    scope: 'local',
+    networkInfo: {
+      subnet: '172.18.0.0/16',
+      gateway: '172.18.0.1'
+    },
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-gwbridge-node-3',
+    name: 'docker_gwbridge',
+    driver: 'bridge',
+    scope: 'local',
+    networkInfo: {
+      subnet: '172.18.0.0/16',
+      gateway: '172.18.0.1'
+    },
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-gwbridge-node-5',  // 노드 5에 대한 gwbridge 추가
+    name: 'docker_gwbridge',
+    driver: 'bridge',
+    scope: 'local',
+    networkInfo: {
+      subnet: '172.18.0.0/16',
+      gateway: '172.18.0.1'
+    },
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'network-bridge',  // 일반 bridge 네트워크 추가
+    name: 'bridge',
+    driver: 'bridge',
+    scope: 'local',
+    networkInfo: {
+      subnet: '172.17.0.0/16',
+      gateway: '172.17.0.1'
+    },
+    createdAt: new Date().toISOString()
+  }
+];
+
+/**
+ * 네트워크 이름으로 ID를 찾는 헬퍼 함수
+ */
+const getNetworkIdByName = (name: string): string | undefined => {
+  const network = sampleNetworks.find(net => net.name === name);
+  return network?.id;
+};
+
+/**
  * 샘플 컨테이너 데이터 생성 함수
  * 
  * @param nodeId 컨테이너가 속한 노드 ID
@@ -17,41 +146,62 @@ import { ContainerData } from '../types/container';
  * @returns 컨테이너 데이터 배열
  */
 export const getSampleContainers = (nodeId: string, count: number): ContainerData[] => {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `${nodeId}-container-${i+1}`,
-    name: `${nodeId.replace('node-', '')}-container-${i+1}`,
-    image: i % 3 === 0 ? 'nginx:latest' : (i % 3 === 1 ? 'redis:alpine' : 'postgres:13'),
-    status: i % 4 === 0 ? 'stopped' : 'running',
-    networks: [
+  return Array.from({ length: count }, (_, i) => {
+    // 네트워크 정보에 ID 추가
+    const bridgeNetworkName = i % 2 === 0 ? 'bridge' : 'docker_gwbridge';
+    const bridgeNetworkId = i % 2 === 0 
+      ? 'network-bridge' 
+      : `network-gwbridge-${nodeId}`;
+    
+    const networks = [
       {
-        name: i % 2 === 0 ? 'bridge' : 'docker_gwbridge',
-        driver: i % 2 === 0 ? 'bridge' : 'overlay',
+        id: bridgeNetworkId,
+        name: bridgeNetworkName,
+        driver: 'bridge',
         ipAddress: `172.17.0.${10 + i}`
-      },
-      // 일부 컨테이너에는 추가 네트워크 연결
-      ...(i % 3 === 0 ? [{
+      }
+    ];
+    
+    // 일부 컨테이너에 overlay 네트워크 추가
+    if (i % 3 === 0) {
+      networks.push({
+        id: 'network-app',
         name: 'app-network',
         driver: 'overlay',
         ipAddress: `10.0.0.${i+1}`
-      }] : []),
-      // 일부 컨테이너에는 다른 Overlay 네트워크 추가
-      ...(i % 5 === 0 ? [{
+      });
+    }
+    
+    if (i % 5 === 0) {
+      networks.push({
+        id: 'network-frontend',
         name: 'frontend-network',
         driver: 'overlay',
         ipAddress: `10.1.0.${i+1}`
-      }] : []),
-      // 또 다른 Overlay 네트워크
-      ...(i % 7 === 0 ? [{
+      });
+    }
+    
+    if (i % 7 === 0) {
+      networks.push({
+        id: 'network-backend',
         name: 'backend-network',
         driver: 'overlay',
         ipAddress: `10.2.0.${i+1}`
-      }] : [])
-    ],
-    ports: i % 2 === 0 ? [
-      { internal: 80, external: 8080 + i, protocol: 'tcp' }
-    ] : [],
-    createdAt: new Date(Date.now() - i * 86400000).toISOString()
-  }));
+      });
+    }
+    
+    return {
+      id: `${nodeId}-container-${i+1}`,
+      name: `${nodeId.replace('node-', '')}-container-${i+1}`,
+      image: i % 3 === 0 ? 'nginx:latest' : (i % 3 === 1 ? 'redis:alpine' : 'postgres:13'),
+      status: i % 4 === 0 ? 'stopped' : 'running',
+      networks: networks,
+      ports: i % 2 === 0 ? [
+        { internal: 80, external: 8080 + i, protocol: 'tcp' }
+      ] : [],
+      createdAt: new Date(Date.now() - i * 86400000).toISOString()
+    };
+  });
 };
 
 /**
@@ -109,143 +259,5 @@ export const sampleNodes: NodeData[] = [
     labels: {
       'node.role': 'worker'
     }
-  }
-];
-
-/**
- * 샘플 네트워크 데이터
- */
-export const sampleNetworks: NetworkData[] = [
-  {
-    id: 'network-external',
-    name: 'external_network',
-    driver: 'bridge',
-    scope: 'local',
-    type: 'external',
-    interfaces: [
-      {
-        name: 'eth0',
-        ipAddress: '192.168.1.1',
-        subnet: '192.168.1.0/24',
-        gateway: '192.168.1.1'
-      }
-    ],
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-ingress',
-    name: 'ingress',
-    driver: 'overlay',
-    scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'eth1',
-        ipAddress: '10.0.0.1',
-        subnet: '10.0.0.0/24',
-        gateway: '10.0.0.1'
-      }
-    ],
-    attachable: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-app',
-    name: 'app-network',
-    driver: 'overlay',
-    scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'ovl0',
-        ipAddress: '10.0.0.1',
-        subnet: '10.0.0.0/24',
-        gateway: '10.0.0.1'
-      }
-    ],
-    attachable: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-frontend',
-    name: 'frontend-network',
-    driver: 'overlay',
-    scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'ovl1',
-        ipAddress: '10.1.0.1',
-        subnet: '10.1.0.0/24',
-        gateway: '10.1.0.1'
-      }
-    ],
-    attachable: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-backend',
-    name: 'backend-network',
-    driver: 'overlay',
-    scope: 'swarm',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'ovl2',
-        ipAddress: '10.2.0.1',
-        subnet: '10.2.0.0/24',
-        gateway: '10.2.0.1'
-      }
-    ],
-    attachable: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-gwbridge-1',
-    name: 'docker_gwbridge',
-    driver: 'gwbridge',
-    scope: 'local',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'gwbr0',
-        ipAddress: '172.18.0.1',
-        subnet: '172.18.0.0/16',
-        gateway: '172.18.0.1'
-      }
-    ],
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-gwbridge-2',
-    name: 'docker_gwbridge',
-    driver: 'gwbridge',
-    scope: 'local',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'gwbr0',
-        ipAddress: '172.18.0.2',
-        subnet: '172.18.0.0/16',
-        gateway: '172.18.0.1'
-      }
-    ],
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-gwbridge-3',
-    name: 'docker_gwbridge',
-    driver: 'gwbridge',
-    scope: 'local',
-    type: 'docker',
-    interfaces: [
-      {
-        name: 'gwbr0',
-        ipAddress: '172.18.0.3',
-        subnet: '172.18.0.0/16',
-        gateway: '172.18.0.1'
-      }
-    ],
-    createdAt: new Date().toISOString()
   }
 ];

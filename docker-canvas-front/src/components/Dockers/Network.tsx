@@ -1,6 +1,6 @@
 import React, { memo, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { NetworkData, NetworkDriver, NetworkType, ContainerHandleInfo } from '../types/network';
+import { NetworkData, NetworkDriver, ContainerHandleInfo } from '../types/network';
 import './Network.css';
 
 /**
@@ -30,135 +30,84 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
   const [isHovered, setIsHovered] = useState(false);
   
   // 네트워크 유형에 따른 스타일 계산
-  const getNetworkTypeStyles = (type: NetworkType, driver: NetworkDriver) => {
-    // External 네트워크
-    if (type === 'external') {
+  const getNetworkTypeStyles = (driver: NetworkDriver) => {
+    // Ingress 네트워크
+    if (data.name === 'ingress') {
       return {
-        background: '#6B46C1',
-        borderColor: '#553C9A'
+        background: '#ED8936',
+        borderColor: '#C05621'
       };
     }
     
-    // Docker 내부 네트워크
-    if (type === 'docker') {
-      // Ingress 네트워크
-      if (data.name === 'ingress') {
-        return {
-          background: '#ED8936',
-          borderColor: '#C05621'
-        };
-      }
-      
-      // GWBridge 네트워크
-      if (driver === 'gwbridge' || data.name.includes('gwbridge')) {
-        return {
-          background: '#4299E1',
-          borderColor: '#2B6CB0'
-        };
-      }
-      
-      // 기타 Docker 네트워크
+    // GWBridge 네트워크
+    if (driver === 'bridge' || data.name === 'docker_gwbridge') {
       return {
-        background: '#38B2AC',
-        borderColor: '#2C7A7B'
+        background: '#4299E1',
+        borderColor: '#2B6CB0'
       };
     }
     
-    // 기본 스타일
+    // 기타 Docker 네트워크
     return {
-      background: '#718096',
-      borderColor: '#4A5568'
+      background: '#38B2AC',
+      borderColor: '#2C7A7B'
     };
   };
+  
 
   // 네트워크 유형에 따른 스타일
-  const networkTypeStyles = getNetworkTypeStyles(data.type, data.driver);
+  const networkTypeStyles = getNetworkTypeStyles(data.driver);
   
   // 네트워크 유형별 CSS 클래스 계산
   const getNetworkTypeClass = () => {
-    if (data.type === 'external') return 'external';
     if (data.name === 'ingress') return 'ingress';
-    if (data.driver === 'gwbridge' || data.name.includes('gwbridge')) return 'gwbridge';
+    if (data.driver === 'bridge' || data.name === 'docker_gwbridge') return 'gwbridge';
     return 'docker';
   };
   
   // 연결 유형에 따른 핸들 렌더링
   const renderHandles = () => {
     // GWBridge 네트워크인 경우
-    if (data.driver === 'gwbridge' || data.name.includes('gwbridge')) {
-      const handles = [];
-
-      // 노드에서 오는 연결을 받는 하단 핸들
-      handles.push(
-        <Handle
-          key="gwbridge-in"
-          type="target"
-          position={Position.Bottom}
-          id="gwbridge-in"
-          style={{ 
-            background: '#63B3ED', 
-            width: '8px', 
-            height: '8px',
-            left: '50%' 
-          }}
-        />
-      );
-
+    if (data.driver === 'bridge' || data.name.includes('gwbridge')) {
       // 컨테이너 핸들 정보가 있는 경우 해당 위치에 개별 핸들 생성
       if (data.containerHandles && data.containerHandles.length > 0) {
-        // 각 컨테이너에 대응하는 상단 핸들들
-        data.containerHandles.forEach((handleInfo, index) => {
-          handles.push(
-            <Handle
-              key={`container-handle-${index}`}
-              type="target"
-              position={Position.Top}
-              id={`handle-${handleInfo.containerId}`}
-              style={{ 
-                background: '#63B3ED', 
-                width: '8px', 
-                height: '8px',
-                left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
-              }}
-            />
-          );
-        });
-      } else {
-        // 컨테이너 핸들 정보가 없는 경우 기본 상단 핸들 추가
-        handles.push(
+        // 상단 핸들들 (각 컨테이너에 대응)
+        const topHandles = data.containerHandles.map((handleInfo, index) => (
           <Handle
-            key="gwbridge-top-default"
+            key={`container-handle-${index}`}
             type="target"
             position={Position.Top}
-            id="gwbridge-top-default"
+            id={`handle-${handleInfo.containerId}`}
             style={{ 
               background: '#63B3ED', 
               width: '8px', 
               height: '8px',
-              left: '50%'  // 중앙에 위치
+              left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+            }}
+          />
+        ));
+        
+        // 하단 핸들 (노드 연결용) - 단일 핸들
+        const bottomHandle = (
+          <Handle
+            key="gwbridge-out"
+            type="source"
+            position={Position.Bottom}
+            id="gwbridge-out"
+            style={{ 
+              background: '#63B3ED', 
+              width: '8px', 
+              height: '8px',
+              left: '50%' 
             }}
           />
         );
+        
+        return [...topHandles, bottomHandle];
       }
-
-      return handles;
-    }
-    
-    // External 네트워크인 경우 - 상단에만 핸들
-    if (data.type === 'external') {
-      return (
-        <Handle
-          type="target"
-          position={Position.Top}
-          id="external-in"
-          style={{ 
-            background: '#9F7AEA', 
-            width: '8px', 
-            height: '8px',
-            left: '50%' 
-          }}
-        />
-      );
+      
+      // 기본 핸들 (정보가 없는 경우)
+      return [];
     }
     
     // Overlay 네트워크인 경우
@@ -237,22 +186,17 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
             marginTop: '5px'
           }}>
           <div className="font-bold mb-1">{data.name}</div>
-          <div className="text-xs text-gray-300 mb-1">타입: {data.type}</div>
           <div className="text-xs mb-1">드라이버: {data.driver}</div>
           <div className="text-xs mb-1">범위: {data.scope}</div>
           
-          {/* 인터페이스 정보 (있을 경우) */}
-          {data.interfaces && data.interfaces.length > 0 && (
-            <div className="mt-1">
-              <div className="text-xs font-semibold">인터페이스:</div>
-              {data.interfaces.map((iface, idx) => (
-                <div key={idx} className="text-xs text-gray-300 ml-1">
-                  {iface.name}: {iface.ipAddress}
-                  {iface.subnet && ` (${iface.subnet})`}
-                </div>
-              ))}
+          {/* 네트워크 정보 (있을 경우) */}
+          <div className="mt-1">
+            <div className="text-xs font-semibold">네트워크 정보:</div>
+            <div className="text-xs text-gray-300 ml-1">
+              {data.networkInfo.subnet && <div>서브넷: {data.networkInfo.subnet}</div>}
+              {data.networkInfo.gateway && <div>게이트웨이: {data.networkInfo.gateway}</div>}
             </div>
-          )}
+          </div>
           
           {/* 연결된 컨테이너 정보 (있을 경우) */}
           {data.containerHandles && data.containerHandles.length > 0 && (

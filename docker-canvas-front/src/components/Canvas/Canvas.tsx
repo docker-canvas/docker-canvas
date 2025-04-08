@@ -14,7 +14,8 @@ import nodeTypes from '../types/nodeType';
 import edgeTypes from '../types/edgeType';
 import { sampleNodes, sampleNetworks } from '../data/sampleData';
 import { generateLayout } from './layoutEngine';
-import { useStreamDockerEvents } from '../data/docker-api'
+import { useStreamDockerEvents } from '../data/api_events'
+import { useDockerAPI } from '../data/api_others';
 import { simpleSampleNetworks, simpleSampleNodes } from '../data/simpleSampleData';
 
 /**
@@ -39,6 +40,7 @@ const Canvas: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [activeMode, setActiveMode] = useState('hand');
   const { eventData, loading, error } = useStreamDockerEvents('http://localhost:3001/docker/events');
+  const { taskData, nodeData, networkData, serviceData } = useDockerAPI('init');
   
   // ResizeObserver 오류 방지를 위한 초기화 상태 추가
   const [initialized, setInitialized] = useState(false);
@@ -92,6 +94,10 @@ const Canvas: React.FC = () => {
   
   // 리프레시 핸들러 (노드와 엣지 초기화)
   const handleRefresh = () => {
+    console.log(taskData);
+    console.log(nodeData);
+    console.log(networkData);
+    console.log(serviceData);
     // 레이아웃 엔진을 사용하여 노드와 엣지 재생성
     const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
     

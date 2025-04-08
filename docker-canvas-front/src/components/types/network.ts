@@ -6,18 +6,13 @@
  */
 
 // 네트워크 드라이버 타입 정의
-export type NetworkDriver = 'bridge' | 'overlay' | 'host' | 'macvlan' | 'none' | 'gwbridge';
+export type NetworkDriver = 'bridge' | 'overlay' | 'host' | 'macvlan' | 'none';
 
 // 네트워크 범위 타입 정의
-export type NetworkScope = 'swarm' | 'local' | 'global';
+export type NetworkScope = 'swarm' | 'local';
 
-// 네트워크 유형 정의
-export type NetworkType = 'external' | 'docker' | 'internal';
-
-// 네트워크 인터페이스 정의
-export interface NetworkInterface {
-  name: string;         // 인터페이스 이름
-  ipAddress: string;    // IP 주소
+// 네트워크 기본 정보 정의 (간소화됨)
+export interface NetworkInfo {
   subnet?: string;      // 서브넷
   gateway?: string;     // 게이트웨이
 }
@@ -34,8 +29,7 @@ export interface NetworkData {
   name: string;                     // 네트워크 이름 (ingress, docker_gwbridge 등)
   driver: NetworkDriver;            // 네트워크 드라이버
   scope: NetworkScope;              // 네트워크 범위
-  type: NetworkType;                // 네트워크 유형 (external, docker)
-  interfaces: NetworkInterface[];   // 네트워크 인터페이스 목록
+  networkInfo: NetworkInfo;         // 네트워크 기본 정보 (subnet, gateway, IP)
   attachable?: boolean;             // 컨테이너 수동 연결 가능 여부
   internal?: boolean;               // 내부 네트워크 여부
   labels?: Record<string, string>;  // 네트워크 라벨
