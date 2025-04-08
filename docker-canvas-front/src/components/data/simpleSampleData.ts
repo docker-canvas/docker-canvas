@@ -53,7 +53,7 @@ export const simpleSampleNodes: NodeData[] = [
     containers: [
       {
         id: 'node-1-container-1',
-        name: 'container-1',
+        serviceName: 'container-1',
         image: 'nginx:latest',
         status: 'running',
         networks: [
@@ -73,7 +73,7 @@ export const simpleSampleNodes: NodeData[] = [
       },
       {
         id: 'node-1-container-2',
-        name: 'container-2',
+        serviceName: 'container-2',
         image: 'redis:alpine',
         status: 'running',
         networks: [

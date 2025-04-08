@@ -10,7 +10,7 @@ export type ContainerStatus = 'running' | 'stopped' | 'paused' | 'created' | 'ex
 
 // 네트워크 정보를 정의하는 인터페이스
 export interface ContainerNetwork {
-  id: string;       // 네트워크 ID - 안전한 참조를 위해 추가
+  id?: string;       // 네트워크 ID - 안전한 참조를 위해 추가
   name: string;       // 네트워크 이름
   driver: string;     // 네트워크 드라이버 (bridge, overlay, host 등)
   ipAddress?: string; // 컨테이너의 해당 네트워크 내 IP 주소
@@ -26,7 +26,7 @@ export interface HandlePositions {
 // 컨테이너 데이터 인터페이스 정의
 export interface ContainerData {
   id: string;                       // 컨테이너 ID
-  name: string;                     // 컨테이너 이름
+  serviceName?: string;             // 컨테이너 이름
   image: string;                    // 이미지 이름과 태그
   status: ContainerStatus;          // 컨테이너 상태
   networks: ContainerNetwork[];     // 연결된 네트워크 목록

@@ -114,21 +114,17 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
         height: '80px', // layoutCalculator.ts의 containerHeight와 일치시킴
         position: 'relative'
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => setIsHovered(true)}  // 마우스 진입 시 호버 상태 true
+      onMouseLeave={() => setIsHovered(false)} // 마우스 이탈 시 호버 상태 false
     >
       {/* 네트워크 연결을 위한 핸들 */}
       {renderTopHandles()}
       {renderBottomHandles()}
 
-      {/* 컴포넌트 타입 표시 (오른쪽 아래) */}
-      <div className="absolute bottom-0 right-1 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded" style={{ fontSize: '0.65rem' }}>
-        {data.name}
-      </div>
-      
-      {/* 상태 표시기 (왼쪽 상단) */}
-      <div className="absolute top-1 left-1 flex items-center">
-        <span className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusColor()}`}></span>
+      {/* 컴포넌트 타입 표시와 상태 표시 (오른쪽에 통합) */}
+      <div className="absolute bottom-1 right-1 text-xs bg-gray-800 bg-opacity-80 px-2 py-1 rounded-md flex items-center" style={{ fontSize: '0.7rem' }}>
+        <span className={`inline-block w-3 h-3 rounded-full mr-1.5 ${getStatusColor()}`}></span>
+        <span className="font-medium text-white">{data.serviceName}</span>
       </div>
       
       {/* 호버 시 표시되는 상세 정보 */}
@@ -141,7 +137,7 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
             top: '100%',
             marginTop: '5px'
           }}>
-          <div className="font-bold mb-1">{data.name}</div>
+          <div className="font-bold mb-1">{data.serviceName}</div>
           <div className="text-xs text-gray-300 mb-1">{data.image}</div>
           <div className="text-xs mb-1">ID: {shortId}</div>
           

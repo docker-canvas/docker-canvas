@@ -192,7 +192,7 @@ export const getSampleContainers = (nodeId: string, count: number): ContainerDat
     
     return {
       id: `${nodeId}-container-${i+1}`,
-      name: `${nodeId.replace('node-', '')}-container-${i+1}`,
+      serviceName: `${nodeId.replace('node-', '')}-container-${i+1}`, // name에서 serviceName으로 변경
       image: i % 3 === 0 ? 'nginx:latest' : (i % 3 === 1 ? 'redis:alpine' : 'postgres:13'),
       status: i % 4 === 0 ? 'stopped' : 'running',
       networks: networks,

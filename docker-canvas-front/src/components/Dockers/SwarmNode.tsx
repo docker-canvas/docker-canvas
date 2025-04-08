@@ -22,12 +22,10 @@ export interface SwarmNodeProps {
  * - 노드에 배치된 컨테이너를 시각적으로 표시
  * - 연결 핸들(Handle)을 통해 다른 노드와 연결 가능
  * - 노드 호스트명 및 상태 정보 표시
- * - 호버 시 간결한 핵심 정보(호스트명, 상태, 역할) 표시
+ * - 모든 정보 직접 표시 (호버 기능 제거)
  * - 상단 핸들로 컨테이너 연결, 하단 핸들로 네트워크 연결
  */
 const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { // 기본값 추가
-  // 호버 상태 관리
-  const [isHovered, setIsHovered] = useState(false);
   // 상세 정보 표시 상태 관리 (추가)
   const [showDetails, setShowDetails] = useState(false);
   
@@ -36,13 +34,13 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
     // Manager는 더 진한 색상, Worker는 더 연한 색상
     if (role === 'Manager') {
       return {
-        background: '#1a4f72',
-        borderColor: '#0c2e44'
+        background: '#1E3A5F',
+        borderColor: '#0F2847'
       };
     }
     return {
-      background: '#3182ce',
-      borderColor: '#2c5282'
+      background: '#2D5F5D',
+      borderColor: '#1E4240'
     };
   };
 
@@ -93,6 +91,27 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
     return null;
   };
   
+  
+  // 라벨 정보 렌더링 함수
+  const renderLabels = () => {
+    if (!data.labels || Object.keys(data.labels).length === 0) {
+      return null;
+    }
+    
+    return (
+      <div className="mt-4">
+        <div className="text-sm font-bold mb-2">라벨:</div>
+        <div className="flex flex-wrap">
+          {Object.entries(data.labels).map(([key, value], index) => (
+            <div key={index} className="text-xs bg-blue-700 rounded px-1 py-0.5 mr-1 mb-1">
+              {key}: {value}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+  
   return (
     <div
       className={`
@@ -106,11 +125,9 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
         background: roleStyles.background,
         borderColor: roleStyles.borderColor,
         color: 'white',
-        overflow: 'hidden', // 내용이 넘칠 경우 숨김 처리
+        overflow: 'auto', // 내용이 넘칠 경우 스크롤 표시로 변경
         position: 'relative' // 타입 표시를 위한 상대 위치 설정
       }}
-      onMouseEnter={() => setIsHovered(true)}  // 마우스 진입 시 호버 상태 true
-      onMouseLeave={() => setIsHovered(false)} // 마우스 이탈 시 호버 상태 false
     >
       {/* 동적으로 계산된 핸들 렌더링 */}
       {renderTopHandles()}
@@ -118,27 +135,24 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
 
       {/* 노드 내용 */}
       <div className="flex flex-col content" style={{ height: '100%' }}>
-        {/* 호스트명 */}
-        <div className="hostname font-bold text-xl">{data.hostname}</div>
-        
-        {/* 상태 표시기 */}
-        <div className="flex items-center mt-2">
-          <span className={`status-indicator ${getStatusIndicatorStyle()}`}></span>
-          <span>{data.status || 'Unknown'}</span>
-        </div>
-        
-        {/* 역할 정보 */}
-        <div className="mt-2">
-          <span className="label">{data.role}</span>
-        </div>
-        
-        
-        {/* 컨테이너 수 표시 */}
-        <div className="mt-auto">
-          <div className="text-sm">
-            컨테이너: {data.containers.length}개
+        {/* 헤더 섹션 */}
+        <div className="mb-4">
+          {/* 호스트명 */}
+          <div className="hostname font-bold text-xl mb-2">{data.hostname}</div>
+          
+          {/* 상태 및 역할 정보 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className={`status-indicator ${getStatusIndicatorStyle()}`}></span>
+              <span className="ml-1">{data.status || 'Unknown'}</span>
+            </div>
+            <span className="label">{data.role}</span>
           </div>
         </div>
+        
+        
+        {/* 라벨 정보 */}
+        {renderLabels()}
         
         {/* 컴포넌트 타입 표시 - 오른쪽 아래에 위치 */}
         <div className="absolute bottom-2 right-2 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded">
@@ -146,46 +160,6 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
         </div>
       </div>
 
-      {/* 호버 시 보여줄 정보 (Container 스타일과 통일) */}
-      {isHovered && (
-        <div className="absolute z-50 bg-gray-800 bg-opacity-90 text-white p-3 rounded shadow-lg"
-          style={{ 
-            width: '200px', 
-            left: '50%', 
-            transform: 'translateX(-50%)', 
-            top: '50%',
-            marginTop: '-100px'
-          }}>
-          <div className="font-bold mb-1">{data.hostname}</div>
-          <div className="text-xs mb-1">역할: {data.role}</div>
-          
-          <div className="flex items-center my-1">
-            <span className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusIndicatorStyle()}`}></span>
-            <span className="text-xs">{data.status || 'Unknown'}</span>
-          </div>
-          
-          
-          {/* 컨테이너 수 정보 */}
-          <div className="mt-1">
-            <div className="text-xs font-semibold">컨테이너:</div>
-            <div className="text-xs text-gray-300 ml-1">
-              {data.containers.length}개
-            </div>
-          </div>
-          
-          {/* 라벨 정보 (있을 경우) */}
-          {data.labels && Object.keys(data.labels).length > 0 && (
-            <div className="mt-1">
-              <div className="text-xs font-semibold">라벨:</div>
-              {Object.entries(data.labels).map(([key, value], index) => (
-                <div key={index} className="text-xs text-gray-300 ml-1">
-                  {key}: {value}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
