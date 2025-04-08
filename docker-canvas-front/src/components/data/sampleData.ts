@@ -212,9 +212,6 @@ export const sampleNodes: NodeData[] = [
     id: 'node-1',
     hostname: 'swarm-manager-01',
     role: 'Manager',
-    networkInterfaces: [
-      { name: 'eth0', address: '192.168.1.10' }
-    ],
     status: 'ready',
     containers: getSampleContainers('node-1', 5),
     labels: {
@@ -225,9 +222,6 @@ export const sampleNodes: NodeData[] = [
     id: 'node-5',
     hostname: 'swarm-manager-02',
     role: 'Manager',
-    networkInterfaces: [
-      { name: 'eth0', address: '192.168.1.14' }
-    ],
     status: 'ready',
     containers: getSampleContainers('node-5', 3),
     labels: {
@@ -238,9 +232,6 @@ export const sampleNodes: NodeData[] = [
     id: 'node-2',
     hostname: 'swarm-worker-01',
     role: 'Worker',
-    networkInterfaces: [
-      { name: 'eth0', address: '192.168.1.11' }
-    ],
     status: 'ready',
     containers: getSampleContainers('node-2', 8),
     labels: {
@@ -251,9 +242,6 @@ export const sampleNodes: NodeData[] = [
     id: 'node-3',
     hostname: 'swarm-worker-02',
     role: 'Worker',
-    networkInterfaces: [
-      { name: 'eth0', address: '192.168.1.12' }
-    ],
     status: 'down',
     containers: getSampleContainers('node-3', 3),
     labels: {

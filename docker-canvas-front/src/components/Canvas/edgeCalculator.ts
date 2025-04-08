@@ -43,13 +43,12 @@ export const calculateEdges = (
     // 2. 각 네트워크 유형별로 찾기
     const gwbridgeNetworks = layoutedNodes.filter(
       node => node.type === 'networkNode' && 
-      (node.data.driver === 'gwbridge' || node.data.name.includes('gwbridge'))
+      (node.data.driver === 'bridge' || node.data.name.includes('gwbridge') || node.data.name === 'docker_gwbridge')
     );
     
     const overlayNetworks = layoutedNodes.filter(
       node => node.type === 'networkNode' && 
-      node.data.driver === 'overlay' && 
-      !node.data.name.includes('gwbridge')
+      node.data.driver === 'overlay'
     );
     
     // 3. Swarm Node들 찾기
@@ -62,30 +61,34 @@ export const calculateEdges = (
       node => node.type === 'container'
     );
     
-    // 5. 규칙에 따라 엣지 생성
-    
     // 규칙 1: Node는 GWBridge 네트워크와 연결
-    // VXLAN이 아니므로 라벨 제거
     swarmNodeElements.forEach((swarmNode) => {
-      // gwbridge id 형식: network-gwbridge-node-1
-      const gwbridgeId = `network-gwbridge-${swarmNode.id}`;
-      const matchingGWBridge = gwbridgeNetworks.find(network => network.id === gwbridgeId);
+        // gwbridge id 형식: network-gwbridge-node-1
+        const gwbridgeId = `network-gwbridge-${swarmNode.id}`;
+        
+        // 네트워크 ID 직접 일치 여부가 아닌 ID에 노드 ID가 포함되는지 확인하는 방식으로 변경
+        // 더 유연한 매칭 로직으로 변경
+        const matchingGWBridge = gwbridgeNetworks.find(network => 
+          network.id === gwbridgeId || 
+          (network.id.includes('gwbridge') && network.id.includes(swarmNode.id))
+        );
+        
+        
+        if (matchingGWBridge) {
+          edges.push({
+            id: `edge-${swarmNode.id}-to-${matchingGWBridge.id}`,
+            source: swarmNode.id,
+            target: matchingGWBridge.id,
+            sourceHandle: 'gwbridge-out',  // SwarmNode의 상단 핸들
+            targetHandle: 'gwbridge-in',   // GWBridge 네트워크의 하단 핸들
+            type: 'swarmEdge',
+            data: {
+              edgeType: 'default' as SwarmEdgeType,
+            }
+          });
+        }
+      });
       
-      if (matchingGWBridge) {
-        edges.push({
-          id: `edge-${swarmNode.id}-to-${matchingGWBridge.id}`,
-          source: swarmNode.id,
-          target: matchingGWBridge.id,
-          sourceHandle: 'gwbridge-out',
-          targetHandle: 'gwbridge-in',
-          type: 'swarmEdge',
-          data: {
-            edgeType: 'default' as SwarmEdgeType,
-            // 라벨 제거
-          }
-        });
-      }
-    });
     
     // 규칙 2: 컨테이너는 GWBridge 네트워크와 연결
     // VXLAN 타입이므로 라벨 유지
@@ -93,7 +96,10 @@ export const calculateEdges = (
       const containerInfo = layoutInfo.containerToGWBridge[container.id];
       if (!containerInfo) return;
       
-      const matchingGWBridge = gwbridgeNetworks.find(network => network.id === containerInfo.gwbridgeId);
+      const matchingGWBridge = gwbridgeNetworks.find(network => 
+        network.id === containerInfo.gwbridgeId || 
+        (network.id.includes('gwbridge') && network.id.includes(containerInfo.gwbridgeId.split('-').slice(-1)[0]))
+      );
       
       if (matchingGWBridge) {
         const targetHandleId = `handle-${container.id}`;
@@ -120,11 +126,15 @@ export const calculateEdges = (
         connections.forEach(connection => {
           const { containerId, networkId, networkName } = connection;
           
-          const overlayNetwork = overlayNetworks.find(network => network.id === networkId);
+          const overlayNetwork = overlayNetworks.find(network => 
+            network.id === networkId || 
+            network.data.name === networkName
+          );
+          
           if (!overlayNetwork) return;
           
           const containerNode = nodeMap.get(containerId);
-          const networkNode = nodeMap.get(networkId);
+          const networkNode = nodeMap.get(overlayNetwork.id);
           
           if (!containerNode || !networkNode) return;
           
@@ -132,8 +142,8 @@ export const calculateEdges = (
           const sourceHandleId = `overlay-out-${containerId}`;
           
           edges.push({
-            id: `edge-${networkId}-to-${containerId}`,
-            source: networkId,
+            id: `edge-${overlayNetwork.id}-to-${containerId}`,
+            source: overlayNetwork.id,
             target: containerId,
             sourceHandle: sourceHandleId,
             targetHandle: targetHandleId,

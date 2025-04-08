@@ -1,78 +1,114 @@
-import { error } from 'console';
 import { useState, useEffect } from 'react';
+import { NodeData } from '../types/node';
+import { NetworkData } from '../types/network';
+import { ContainerData } from '../types/container';
+
+let url: string = 'http://localhost:3001/docker'
 
 
-export function useDockerAPI(path: 'nodes' | 'networks' | 'tasks' | 'services' | 'init') {
-    const [taskData, setTaskData] = useState<object[]>([]);
-    const [nodeData, setNodeData] = useState<object[]>([]);
-    const [networkData, setNetworkData] = useState<object[]>([]);
-    const [serviceData, setServiceData] = useState<object[]>([]);
-
-    let base: string = 'http://localhost:3001/docker'
-    let url: string;
-
-    function getNodes(url: string) {
-        fetch(url)
-        .then(response => response.json())
-        .then(json => setNodeData(json))
-        .catch(error => console.log(error));
-    }
-
-    function getNetworks(url: string) {
-        fetch(url)
-        .then(response => response.json())
-        .then(json => setNetworkData(json))
-        .catch(error => console.log(error));
-    }
-
-    function getTasks(url: string) {
-        fetch(url)
-        .then(response => response.json())
-        .then(json => setTaskData(json))
-        .catch(error => console.log(error));
-    }
-
-    function getServices(url: string) {
-        fetch(url)
-        .then(response => response.json())
-        .then(json => setServiceData(json))
-        .catch(error => console.log(error));
-    }
-    
+export function useTaskAPI() {
+    const [taskData, setTaskData] = useState<ContainerData[]>([]);
 
     useEffect(() => {
-        switch(path) {
-            case 'nodes':
-                url = base + '/nodes';
-                getNodes(url);
-                break;
-            case 'networks':
-                url = base + '/networks';
-                getNetworks(url);
-                break;
-            case 'tasks':
-                url = base + '/tasks';
-                getTasks(url);
-                break;
-            case 'services':
-                url = base + '/services';
-                getServices(url);
-                break;
-            default: // fetch all 4 endpoints to initialize
-                url = base + '/nodes';
-                getNodes(url);
+        fetch(url + '/tasks')
+        .then(response => response.json())
+        .then(json => {
+            const containers: ContainerData[] = [];
+    
+            for (const data of json) {
+                const curr_container: ContainerData = {
+                    id: data.ID,
+                    ...(data.NodeI && { labels: data.Labels }),
+                    image: data.Spec.ContainerSpec.Image,
+                    status: data.Status.State,
+                    networks: data.NetworksAttachments.map((network: any) => ({
+                        id: network.Network.ID,
+                        name: network.Network.Spec.Name,
+                        driver: network.Network.DriverState.Name,
+                        ipAddress: network.Addresses[0]
+                    })),
+                    createdAt: data.CreatedAt
+                }
+                containers.push(curr_container);
+            }
+    
+            setTaskData(containers);
+        })
+        .catch(error => console.log(error));
+    }, []);
 
-                url = base + '/networks';
-                getNetworks(url);
+    return { taskData };
+}
 
-                url = base + '/tasks';
-                getTasks(url);
+export function useNodeAPI() {
+    const [nodeData, setNodeData] = useState<NodeData[]>([]);
 
-                url = base + '/services';
-                getServices(url);
-                break;
-        }
-    }, [path]);
+    useEffect(() => {
+        fetch(url + '/nodes')
+        .then(response => response.json())
+        .then(json => {
+            const nodes: NodeData[] = [];
+            // if (taskData.length < 1) {
+            //     useTaskAPI(); // to make sure tasks are pulled
+            // }
+        
+            for (const data of json) {
+                const curr_node: NodeData = {
+                    id: data.ID,
+                    hostname: data.Description.hostname,
+                    role: data.Spec.role,
+                    status: data.Status.State,
+                    containers: [],//taskData.filter( (task: ContainerData) => task.nodeId == data.ID ), // only matching NodeIDs
+                    labels: data.Labels,
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt
+                }
+                nodes.push(curr_node);
+            }
+    
+            setNodeData(nodes);
+        })
+        .catch(error => console.log(error));
+    }, []);
 
-    return { taskData, nodeData, networkData, serviceData };
+    return { nodeData };
+}
+
+export function useNetworkAPI() {
+    const [networkData, setNetworkData] = useState<NetworkData[]>([]);
+
+    useEffect(() => {
+        fetch(url + '/networks')
+        .then(response => response.json())
+        .then(json => {
+            console.log('networks');
+            console.log(json);      
+            const networks: NetworkData[] = [];
+
+            for (const data of json) {
+                const curr_network: NetworkData = {
+                    id: data.Id,
+                    name: data.Name,
+                    driver: data.Driver,
+                    scope: data.Scope,
+                    networkInfo: {
+                        ...(data.IPAM.Config.subnet && { subnet: data.IPAM.Config.subnet }),
+                        ...(data.IPAM.Config.gateway && { subnet: data.IPAM.Config.gateway }),
+                    },
+                    attachable: data.Attachable,
+                    internal: data.Internal,
+                    ...(data.Labels && { labels: data.Labels }),
+                    createdAt: data.createdAt
+                }
+                networks.push(curr_network);
+            }
+
+            setNetworkData(networks);
+        })
+        .catch(error => {
+            console.log(error); 
+        });
+    }, []);
+
+    return { networkData };
 }

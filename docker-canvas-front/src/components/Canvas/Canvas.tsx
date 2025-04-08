@@ -12,16 +12,20 @@ import 'reactflow/dist/style.css';
 import ToolBar from './ToolBar';
 import nodeTypes from '../types/nodeType';
 import edgeTypes from '../types/edgeType';
-import { sampleNodes, sampleNetworks } from '../data/sampleData';
 import { generateLayout } from './layoutEngine';
 import { useStreamDockerEvents } from '../data/api_events'
-import { useDockerAPI } from '../data/api_others';
 import { simpleSampleNetworks, simpleSampleNodes } from '../data/simpleSampleData';
+import { useDockerContext } from '../../context/DockerContext';
 
 /**
  * Canvas 컴포넌트
  * 
  * ReactFlow를 사용하여 Docker Swarm 인프라를 시각화하는 메인 캔버스입니다.
+ * 
+ * 주요 변경 사항:
+ * - DockerContext에서 노드 및 네트워크 데이터 가져오기
+ * - 데이터 변경 시 레이아웃 다시 계산
+ * - 테스트 모드 전환 로직 제거 (Context로 이동)
  * 
  * 주요 기능:
  * - Docker Swarm 노드 표시 및 관리
@@ -35,12 +39,14 @@ import { simpleSampleNetworks, simpleSampleNodes } from '../data/simpleSampleDat
  * - 캔버스 초기화 기능
  */
 const Canvas: React.FC = () => {
+  // DockerContext에서 노드 및 네트워크 데이터 가져오기
+  const { nodes: contextNodes, networks: contextNetworks, refreshData } = useDockerContext();
+  
   // ReactFlow 노드와 엣지 상태 관리
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [activeMode, setActiveMode] = useState('hand');
   const { eventData, loading, error } = useStreamDockerEvents('http://localhost:3001/docker/events');
-  const { taskData, nodeData, networkData, serviceData } = useDockerAPI('init');
   
   // ResizeObserver 오류 방지를 위한 초기화 상태 추가
   const [initialized, setInitialized] = useState(false);
@@ -48,13 +54,12 @@ const Canvas: React.FC = () => {
   
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   
-  // 컴포넌트 마운트 시 초기 데이터 로드
+  // 데이터가 변경될 때마다 레이아웃 다시 계산
   useEffect(() => {
     // ResizeObserver 오류 방지를 위한 지연 초기화
     const timer = setTimeout(() => {
       // 레이아웃 엔진을 사용하여 노드와 엣지 생성
-      const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
-      // const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(simpleSampleNodes, simpleSampleNetworks);
+      const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(contextNodes, contextNetworks);
       
       // 노드와 엣지 설정
       setNodes(layoutedNodes);
@@ -64,7 +69,7 @@ const Canvas: React.FC = () => {
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [setNodes, setEdges]);
+  }, [contextNodes, contextNetworks, setNodes, setEdges]);
   
   // 초기화 후 fitView 실행
   useEffect(() => {
@@ -92,19 +97,10 @@ const Canvas: React.FC = () => {
     zoomOut();
   };
   
-  // 리프레시 핸들러 (노드와 엣지 초기화)
+  // 리프레시 핸들러 (Docker 컨텍스트 데이터 새로고침)
   const handleRefresh = () => {
-    console.log(taskData);
-    console.log(nodeData);
-    console.log(networkData);
-    console.log(serviceData);
-    // 레이아웃 엔진을 사용하여 노드와 엣지 재생성
-    const { nodes: layoutedNodes, edges: layoutedEdges } = generateLayout(sampleNodes, sampleNetworks);
-    
-    
-    // 노드와 엣지 업데이트
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    // 컨텍스트의 데이터 새로고침 함수 호출
+    refreshData();
     
     // 뷰 리셋
     setTimeout(() => {

@@ -87,13 +87,13 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
           />
         ));
         
-        // 하단 핸들 (노드 연결용) - 단일 핸들
+        // 하단 핸들 추가 (Node와 연결용)
         const bottomHandle = (
           <Handle
-            key="gwbridge-out"
-            type="source"
+            key="gwbridge-in"
+            type="target"  // 타입을 target으로 변경 - Node에서 오는 연결을 받음
             position={Position.Bottom}
-            id="gwbridge-out"
+            id="gwbridge-in"  // ID를 gwbridge-in으로 설정
             style={{ 
               background: '#63B3ED', 
               width: '8px', 
@@ -106,8 +106,21 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
         return [...topHandles, bottomHandle];
       }
       
-      // 기본 핸들 (정보가 없는 경우)
-      return [];
+      // 기본 핸들 (컨테이너 핸들 정보가 없는 경우에도 Node 연결용 핸들 추가)
+      return [
+        <Handle
+          key="gwbridge-in"
+          type="target"
+          position={Position.Bottom}
+          id="gwbridge-in"
+          style={{ 
+            background: '#63B3ED', 
+            width: '8px', 
+            height: '8px',
+            left: '50%' 
+          }}
+        />
+      ];
     }
     
     // Overlay 네트워크인 경우
@@ -131,7 +144,7 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
       }
       
       // 기본 핸들 (정보가 없는 경우) - 중앙에 하나
-      return ;
+      return null;
     }
     
     // 기본 핸들 (일반 네트워크)

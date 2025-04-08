@@ -26,7 +26,8 @@ export interface HandlePositions {
 // 컨테이너 데이터 인터페이스 정의
 export interface ContainerData {
   id: string;                       // 컨테이너 ID
-  name: string;                     // 컨테이너 이름
+  name?: string;                     // 컨테이너 이름
+  nodeId?: string;                   // 배치된 노트 이름
   image: string;                    // 이미지 이름과 태그
   status: ContainerStatus;          // 컨테이너 상태
   networks: ContainerNetwork[];     // 연결된 네트워크 목록
