@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import MainLayout from './components/Layout/MainLayout';
 import { DockerProvider } from './context/DockerContext';
 import './index.css';
+import LocalDataInitializer from './context/TestDataInitializer';
 
 /**
  * App 컴포넌트
@@ -18,6 +19,7 @@ const App: React.FC = () => {
     <div className="App">
       {/* Docker 인프라 데이터를 관리하는 Context Provider */}
       <DockerProvider>
+        <LocalDataInitializer></LocalDataInitializer>
         <MainLayout>
         </MainLayout>
       </DockerProvider>
