@@ -19,8 +19,6 @@ interface DockerContextType {
   networks: NetworkData[];    // 네트워크 데이터 배열
   setNodes: React.Dispatch<React.SetStateAction<NodeData[]>>;         // 노드 업데이트 함수
   setNetworks: React.Dispatch<React.SetStateAction<NetworkData[]>>;   // 네트워크 업데이트 함수
-  useTestData: boolean;       // 테스트 데이터 사용 여부
-  setUseTestData: React.Dispatch<React.SetStateAction<boolean>>;      // 테스트 데이터 사용 여부 설정 함수
   refreshData: () => void;    // 데이터 새로고침 함수
   
   // 데이터 초기화 함수
@@ -64,7 +62,6 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
   // 노드 및 네트워크 데이터 상태 관리
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [networks, setNetworks] = useState<NetworkData[]>([]);
-  const [useTestData, setUseTestData] = useState<boolean>(true);
   
   /**
    * 전체 데이터 초기화 함수
@@ -78,23 +75,11 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
   const initializeData = useCallback((initialNodes: NodeData[], initialNetworks: NetworkData[]) => {
     setNodes(initialNodes);
     setNetworks(initialNetworks);
-    // 테스트 데이터 모드를 false로 설정 (실제 데이터 사용 중임을 표시)
-    setUseTestData(false);
-    console.log('Docker 인프라 데이터가 초기화되었습니다.');
   }, []);
   
   // 테스트 데이터와 실제 데이터 간 전환을 위한 함수
   const refreshData = useCallback(() => {
-    if (useTestData) {
-      // 테스트 데이터 사용 시, sampleData.ts의 데이터 사용
-      setNodes([]);
-      setNetworks([]);
-    } else {
-      // 간단한 테스트 데이터 사용 시, simpleSampleData.ts의 데이터 사용
-      setNodes([]);
-      setNetworks([]);
-    }
-  }, [useTestData]);
+  }, []);
 
   // ============= 노드 관련 함수 =============
   
@@ -429,8 +414,6 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
     networks,
     setNodes,
     setNetworks,
-    useTestData,
-    setUseTestData,
     refreshData,
     
     // 데이터 초기화 함수
