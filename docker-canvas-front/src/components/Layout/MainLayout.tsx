@@ -22,15 +22,7 @@ interface MainLayoutProps {
  * - 테스트 모드 토글 버튼 추가 (App.tsx에서 이동)
  */
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  // DockerContext에서 테스트 모드 상태 및 설정 함수 가져오기
-  const { useTestData, setUseTestData, refreshData } = useDockerContext();
-
-  // 테스트 모드 토글 핸들러
-  const toggleTestMode = () => {
-    setUseTestData(!useTestData);
-    // 모드 변경 후 데이터 새로고침
-    setTimeout(() => refreshData(), 0);
-  };
+  const { refreshData } = useDockerContext();
 
   return (
     <div className="flex flex-col h-screen w-full">
@@ -58,19 +50,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <p>Docker Infrastructure Visualization Tool</p>
       </footer>
 
-      {/* 테스트 모드 토글 버튼 (우측 하단에 고정) */}
-      <div className="fixed bottom-16 right-4 flex items-center bg-white p-2 rounded-lg shadow-md z-30">
-        <label className="inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            className="sr-only peer"
-            checked={useTestData}
-            onChange={toggleTestMode}
-          />
-          <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          <span className="ml-2 text-sm font-medium">테스트 모드</span>
-        </label>
-      </div>
+      
     </div>
   );
 };

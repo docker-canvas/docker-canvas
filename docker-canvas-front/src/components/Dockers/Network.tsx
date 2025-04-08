@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useRef } from 'react';
 import { Handle, Position } from 'reactflow';
 import { NetworkData, NetworkDriver, ContainerHandleInfo } from '../types/network';
 import './Network.css';
@@ -28,6 +28,13 @@ export interface NetworkProps {
 const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
   // 호버 상태 관리
   const [isHovered, setIsHovered] = useState(false);
+  // 마우스 위치 상태 추가
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  
+  // 마우스 위치 업데이트 함수
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  };
   
   // 네트워크 유형에 따른 스타일 계산
   const getNetworkTypeStyles = (driver: NetworkDriver) => {
@@ -163,6 +170,71 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
     );
   };
 
+  // 호버 UI를 body에 직접 추가하는 코드
+  React.useEffect(() => {
+    // 호버 상태가 아니면 아무것도 하지 않음
+    if (!isHovered) return;
+    
+    // 툴팁 요소 생성
+    const tooltip = document.createElement('div');
+    tooltip.className = 'network-tooltip';
+    tooltip.style.position = 'fixed';
+    tooltip.style.left = `${mousePosition.x + 15}px`; // 커서 위치에서 약간 오른쪽
+    tooltip.style.top = `${mousePosition.y}px`;
+    tooltip.style.backgroundColor = 'rgba(26, 32, 44, 0.95)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '10px';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.25)';
+    tooltip.style.zIndex = '10000'; // 매우 높은 z-index
+    tooltip.style.width = '200px';
+    tooltip.style.maxHeight = '300px';
+    tooltip.style.overflow = 'auto';
+    
+    // 툴팁 내용 설정
+    tooltip.innerHTML = `
+      <div class="font-bold mb-1">${data.name}</div>
+      <div class="text-xs mb-1">드라이버: ${data.driver}</div>
+      <div class="text-xs mb-1">범위: ${data.scope}</div>
+      
+      <div class="mt-1">
+        <div class="text-xs font-semibold">네트워크 정보:</div>
+        <div class="text-xs text-gray-300 ml-1">
+          ${data.networkInfo.subnet ? `<div>서브넷: ${data.networkInfo.subnet}</div>` : ''}
+          ${data.networkInfo.gateway ? `<div>게이트웨이: ${data.networkInfo.gateway}</div>` : ''}
+        </div>
+      </div>
+      
+      ${data.containerHandles && data.containerHandles.length > 0 ? `
+        <div class="mt-1">
+          <div class="text-xs font-semibold">연결된 컨테이너:</div>
+          <div class="text-xs text-gray-300 ml-1">
+            ${data.containerHandles.length}개 연결됨
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="mt-1 flex flex-wrap">
+        ${data.attachable ? '<span class="text-xs bg-blue-700 rounded px-1 mr-1 mb-1">Attachable</span>' : ''}
+        ${data.internal ? '<span class="text-xs bg-blue-700 rounded px-1 mr-1 mb-1">Internal</span>' : ''}
+      </div>
+      
+      ${data.createdAt ? `
+        <div class="text-xs mt-1 text-gray-300">
+          생성: ${new Date(data.createdAt).toLocaleString()}
+        </div>
+      ` : ''}
+    `;
+    
+    // body에 툴팁 추가
+    document.body.appendChild(tooltip);
+    
+    // 클린업 함수: 컴포넌트 언마운트 시 툴팁 제거
+    return () => {
+      document.body.removeChild(tooltip);
+    };
+  }, [isHovered, mousePosition, data]);
+
   return (
     <div
       className={`
@@ -179,6 +251,7 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onMouseMove={handleMouseMove} // 마우스 이동 이벤트 추가
     >
       {/* 동적으로 계산된 핸들 렌더링 */}
       {renderHandles()}
@@ -187,58 +260,6 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
       <div className="absolute bottom-1 right-2 text-xs text-white bg-black bg-opacity-40 px-1 py-0.5 rounded">
         { data.name }
       </div>
-      
-      {/* 호버 시 표시되는 상세 정보 (Container 스타일과 통일) */}
-      {isHovered && (
-        <div className="absolute z-50 bg-gray-800 bg-opacity-90 text-white p-3 rounded shadow-lg"
-          style={{ 
-            width: '200px', 
-            left: '50%', 
-            transform: 'translateX(-50%)', 
-            top: '100%',
-            marginTop: '5px'
-          }}>
-          <div className="font-bold mb-1">{data.name}</div>
-          <div className="text-xs mb-1">드라이버: {data.driver}</div>
-          <div className="text-xs mb-1">범위: {data.scope}</div>
-          
-          {/* 네트워크 정보 (있을 경우) */}
-          <div className="mt-1">
-            <div className="text-xs font-semibold">네트워크 정보:</div>
-            <div className="text-xs text-gray-300 ml-1">
-              {data.networkInfo.subnet && <div>서브넷: {data.networkInfo.subnet}</div>}
-              {data.networkInfo.gateway && <div>게이트웨이: {data.networkInfo.gateway}</div>}
-            </div>
-          </div>
-          
-          {/* 연결된 컨테이너 정보 (있을 경우) */}
-          {data.containerHandles && data.containerHandles.length > 0 && (
-            <div className="mt-1">
-              <div className="text-xs font-semibold">연결된 컨테이너:</div>
-              <div className="text-xs text-gray-300 ml-1">
-                {data.containerHandles.length}개 연결됨
-              </div>
-            </div>
-          )}
-          
-          {/* 추가 속성 (있을 경우) */}
-          <div className="mt-1 flex flex-wrap">
-            {data.attachable && (
-              <span className="text-xs bg-blue-700 rounded px-1 mr-1 mb-1">Attachable</span>
-            )}
-            {data.internal && (
-              <span className="text-xs bg-blue-700 rounded px-1 mr-1 mb-1">Internal</span>
-            )}
-          </div>
-          
-          {/* 생성 일시 (있을 경우) */}
-          {data.createdAt && (
-            <div className="text-xs mt-1 text-gray-300">
-              생성: {new Date(data.createdAt).toLocaleString()}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
