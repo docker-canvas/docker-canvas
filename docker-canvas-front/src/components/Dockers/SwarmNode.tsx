@@ -71,10 +71,8 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
   // 노드 너비 (고정값, CSS 스타일과 일치해야 함)
   const nodeWidth = 400; // 예시 값, 실제 스타일에 맞게 조정 필요
   
-  // 상단 핸들 렌더링 (GWBridge 연결용만 유지)
+  // 상단 핸들 렌더링 - GWBridge 연결용 핸들 추가
   const renderTopHandles = () => {
-    // Swarm과 연결된 컨테이너만 표시하므로 컨테이너 연결용 핸들은 제거
-    // GWBridge 연결용 핸들만 추가
     return (
       <Handle
         type="source"
@@ -90,13 +88,11 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
     );
   };
 
-  // 하단 핸들 렌더링 함수도 수정 - 이제 필요하지 않을 수 있음
+  // 하단 핸들은 필요 없음
   const renderBottomHandles = () => {
-    // Swarm에서는 Node가 GWBridge와만 연결되고, 
-    // 컨테이너는 GWBridge나 Overlay와 연결되므로
-    // Node 하단에는 핸들이 필요 없음
     return null;
   };
+  
   return (
     <div
       className={`
