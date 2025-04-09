@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useDockerContext } from '../context/DockerContext';
 import { useNetworkAPI, useNodeAPI, useTaskAPI } from '../components/data/api_others';
+import { log } from 'console';
 
 const DataInitializer: React.FC = () => {
   const { initializeData } = useDockerContext();
@@ -11,7 +12,6 @@ const DataInitializer: React.FC = () => {
   
   useEffect(() => {
     console.log(nodeData);
-    console.log(networkData);
     initializeData(nodeData, networkData);
   }, [initializeData, nodeData, networkData, taskData]);
   

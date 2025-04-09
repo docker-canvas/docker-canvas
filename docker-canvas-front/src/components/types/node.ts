@@ -18,7 +18,7 @@ export interface NodeData {
   role: NodeRole;                     // 역할 (Manager/Worker)
   status?: 'ready' | 'down' | 'disconnected'; // 노드 상태 (선택적)
   containers: ContainerData[];        // 컨테이너 목록 (이전의 containerCount 대체)
-  labels?: Record<string, string>;    // 노드 라벨 (선택적)
+  labels?: object;    // 노드 라벨 (선택적)
   createdAt?: string;                 // 생성 일시 (선택적)
   updatedAt?: string;                 // 업데이트 일시 (선택적)
 }
