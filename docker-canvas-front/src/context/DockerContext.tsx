@@ -1,17 +1,16 @@
+// docker-canvas-front/src/context/DockerContext.tsx
 /**
  * Docker 인프라 컨텍스트
  * 
  * 이 파일은 Docker Swarm 인프라 데이터를 관리하는 Context를 정의합니다.
  * - NodeData와 NetworkData 상태 관리
  * - Context Provider 컴포넌트 제공
- * - 필요한 타입들 임포트
- * - 노드, 컨테이너, 네트워크 조작을 위한 함수들 제공
+ * - 데이터 동기화 및 비교 기능 제공
  */
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { NodeData } from '../components/types/node';
 import { NetworkData } from '../components/types/network';
-import { ContainerData } from '../components/types/container';
 
 // Docker 인프라 컨텍스트 인터페이스 정의
 interface DockerContextType {
@@ -21,27 +20,8 @@ interface DockerContextType {
   setNetworks: React.Dispatch<React.SetStateAction<NetworkData[]>>;   // 네트워크 업데이트 함수
   refreshData: () => void;    // 데이터 새로고침 함수
   
-  // 데이터 초기화 함수
-  initializeData: (initialNodes: NodeData[], initialNetworks: NetworkData[]) => void;  // 전체 데이터 초기화
-  
-  // 노드 관련 함수
-  addNode: (node: NodeData) => void;                    // 노드 추가
-  removeNode: (nodeId: string) => void;                 // 노드 삭제
-  updateNode: (nodeId: string, data: Partial<NodeData>) => void;   // 노드 업데이트
-  
-  // 컨테이너 관련 함수
-  addContainer: (nodeId: string, container: ContainerData) => void;   // 컨테이너 추가
-  removeContainer: (nodeId: string, containerId: string) => void;     // 컨테이너 삭제
-  updateContainer: (nodeId: string, containerId: string, data: Partial<ContainerData>) => void;   // 컨테이너 업데이트
-  
-  // 네트워크 관련 함수
-  addNetwork: (network: NetworkData) => void;                        // 네트워크 추가
-  removeNetwork: (networkId: string) => void;                       // 네트워크 삭제
-  updateNetwork: (networkId: string, data: Partial<NetworkData>) => void;  // 네트워크 업데이트
-  
-  // 컨테이너와 네트워크 연결 관리
-  connectContainerToNetwork: (nodeId: string, containerId: string, networkId: string, ipAddress?: string) => void;  // 컨테이너와 네트워크 연결
-  disconnectContainerFromNetwork: (nodeId: string, containerId: string, networkId: string) => void;                  // 컨테이너와 네트워크 연결 해제
+  // 데이터 초기화 및 동기화 함수
+  synchronizeData: (newNodes: NodeData[], newNetworks: NetworkData[]) => void;  // 데이터 동기화
 }
 
 // Context 생성 (기본값은 나중에 Provider에서 제공되므로 여기서는 undefined로 설정)
@@ -63,403 +43,159 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [networks, setNetworks] = useState<NetworkData[]>([]);
   
+  
   /**
-   * 전체 데이터 초기화 함수
+   * 데이터 동기화 함수
    * 
-   * 노드와 네트워크 데이터를 외부에서 제공된 데이터로 한 번에 초기화합니다.
-   * 이 함수는 API 응답이나 파일에서 로드한 데이터로 상태를 설정할 때 유용합니다.
+   * 새로운 데이터와 기존 데이터를 비교하여 변경사항을 반영합니다.
+   * - 새로운 항목 추가
+   * - 변경된 항목 업데이트
+   * - 삭제된 항목 제거
    * 
-   * @param initialNodes 초기화할 노드 데이터 배열
-   * @param initialNetworks 초기화할 네트워크 데이터 배열
+   * @param newNodes 새로운 노드 데이터 배열
+   * @param newNetworks 새로운 네트워크 데이터 배열
    */
-  const initializeData = useCallback((initialNodes: NodeData[], initialNetworks: NetworkData[]) => {
-    setNodes(initialNodes);
-
-    // 각 노드마다 gwbridge 네트워크가 있는지 확인하고, 없으면 추가
-    initialNodes.forEach(node => {
-    // 이 노드에 대한 gwbridge 네트워크 ID
-    const gwbridgeId = `network-gwbridge-${node.id}`;
-    
-    // 해당 ID의 gwbridge가 이미 존재하는지 확인
-    const existingGwbridge = initialNetworks.find(network => network.id === gwbridgeId);
-    
-    // 존재하지 않으면 새로 생성하여 추가
-    if (!existingGwbridge) {
-      const newGwbridge: NetworkData = {
-        id: gwbridgeId,
-        name: 'docker_gwbridge',
-        driver: 'bridge', // bridge 타입으로 설정
-        scope: 'local',
-        networkInfo: {
-        },
-        createdAt: new Date().toISOString()
-      };
+  const synchronizeData = useCallback((newNodes: NodeData[], newNetworks: NetworkData[]) => {
+  // 노드 데이터 동기화
+    setNodes(prevNodes => {
+      // 기존 노드 ID 집합
+      const existingNodeIds = new Set(prevNodes.map(node => node.id));
+      // 새 노드 ID 집합
+      const newNodeIds = new Set(newNodes.map(node => node.id));
       
-      initialNetworks.push(newGwbridge);
-    }
-  });
-    setNetworks(initialNetworks);
+      // 삭제 여부 확인 (삭제된 ID가 있는지) - Set을 Array.from으로 변환
+      const hasDeletedNodes = Array.from(existingNodeIds).some(id => !newNodeIds.has(id));
+      
+      // 유지할 노드들 (기존 노드 중 새 데이터에도 존재하는 노드들)
+      const persistedNodes = prevNodes
+        .filter(node => newNodeIds.has(node.id)) // 삭제된 노드 필터링
+        .map(node => {
+          // 해당 ID의 새 노드 데이터 찾기
+          const updatedNode = newNodes.find(n => n.id === node.id);
+          
+          // 데이터가 실제로 변경되었는지 확인 (깊은 비교 대신 필요한 필드만 비교)
+          if (updatedNode && (
+            node.hostname !== updatedNode.hostname ||
+            node.role !== updatedNode.role ||
+            node.status !== updatedNode.status ||
+            JSON.stringify(node.labels) !== JSON.stringify(updatedNode.labels) ||
+            node.updatedAt !== updatedNode.updatedAt ||
+            // 컨테이너 비교 로직 추가
+            node.containers.length !== updatedNode.containers.length ||
+            JSON.stringify(node.containers.map(c => c.id).sort()) !== 
+            JSON.stringify(updatedNode.containers.map(c => c.id).sort())
+          )) {
+            return updatedNode; // 실제로 변경된 경우만 새 데이터 사용
+          }
+          
+          return node; // 변경되지 않았으면 기존 객체 유지
+        });
+      
+      // 추가할 노드들 (새 노드 중 기존 데이터에 없는 노드들)
+      const addedNodes = newNodes.filter(node => !existingNodeIds.has(node.id));
+      
+      // 변경된 노드가 있거나 추가/삭제된 노드가 있을 때만 새 배열 반환
+      const hasChangedNodes = persistedNodes.some((node, i) => {
+        const prevNode = prevNodes.find(p => p.id === node.id);
+        return node !== prevNode;
+      });
+      
+      if (hasChangedNodes || addedNodes.length > 0 || hasDeletedNodes) {
+        return [...persistedNodes, ...addedNodes];
+      }
+      
+      // 변경된 내용이 없으면 기존 배열 그대로 반환
+      return prevNodes;
+    });
+    
+    // 네트워크 데이터 동기화
+    setNetworks(prevNetworks => {
+      // 기존 네트워크 ID 집합
+      const existingNetworkIds = new Set(prevNetworks.map(network => network.id));
+      // 새 네트워크 ID 집합
+      const newNetworkIds = new Set(newNetworks.map(network => network.id));
+      
+      // 삭제 여부 확인 (삭제된 ID가 있는지)
+      const hasDeletedNetworks = Array.from(existingNetworkIds).some(id => !newNetworkIds.has(id));
+      
+      // 유지할 네트워크들 (기존 네트워크 중 새 데이터에도 존재하는 네트워크들)
+      const persistedNetworks = prevNetworks
+        .filter(network => newNetworkIds.has(network.id)) // 삭제된 네트워크 필터링
+        .map(network => {
+          // 해당 ID의 새 네트워크 데이터 찾기
+          const updatedNetwork = newNetworks.find(n => n.id === network.id);
+          
+          // 데이터가 실제로 변경되었는지 확인 (깊은 비교 대신 필요한 필드만 비교)
+          if (updatedNetwork && (
+            network.name !== updatedNetwork.name ||
+            network.driver !== updatedNetwork.driver ||
+            network.scope !== updatedNetwork.scope ||
+            JSON.stringify(network.networkInfo) !== JSON.stringify(updatedNetwork.networkInfo) ||
+            network.attachable !== updatedNetwork.attachable ||
+            network.internal !== updatedNetwork.internal ||
+            JSON.stringify(network.labels) !== JSON.stringify(updatedNetwork.labels)
+          )) {
+            return updatedNetwork; // 실제로 변경된 경우만 새 데이터 사용
+          }
+          
+          return network; // 변경되지 않았으면 기존 객체 유지
+        });
+      
+      // 추가할 네트워크들 (새 네트워크 중 기존 데이터에 없는 네트워크들)
+      const addedNetworks = newNetworks.filter(network => !existingNetworkIds.has(network.id));
+      
+      // 추가된 노드에 대한 gwbridge 네트워크 생성
+      const gwbridgeNetworks: NetworkData[] = [];
+      
+      // 새 노드와 기존 노드 ID 비교
+      const existingNodeIds = new Set(nodes.map(node => node.id));
+      
+      // 새로 추가된 노드들에 대한 gwbridge 네트워크 생성
+      newNodes.forEach(node => {
+        // 이 노드가 새로 추가된 노드인지 확인
+        if (!existingNodeIds.has(node.id)) {
+          // 이 노드에 대한 gwbridge 네트워크 ID
+          const gwbridgeId = `network-gwbridge-${node.id}`;
+          
+          // 이미 생성된 gwbridge 네트워크가 있는지 확인
+          const existingGwbridge = [...persistedNetworks, ...addedNetworks, ...gwbridgeNetworks]
+            .find(network => network.id === gwbridgeId);
+          
+          // 존재하지 않으면 새로 생성하여 추가
+          if (!existingGwbridge) {
+            const newGwbridge: NetworkData = {
+              id: gwbridgeId,
+              name: 'docker_gwbridge',
+              driver: 'bridge', // bridge 타입으로 설정
+              scope: 'local',
+              networkInfo: {},
+              createdAt: new Date().toISOString()
+            };
+            
+            gwbridgeNetworks.push(newGwbridge);
+          }
+        }
+      });
+      
+      // 변경된 네트워크가 있거나 추가/삭제된 네트워크가 있을 때만 새 배열 반환
+      const hasChangedNetworks = persistedNetworks.some((network, i) => {
+        const prevNetwork = prevNetworks.find(p => p.id === network.id);
+        return network !== prevNetwork;
+      });
+      
+      if (hasChangedNetworks || addedNetworks.length > 0 || gwbridgeNetworks.length > 0 || hasDeletedNetworks) {
+        return [...persistedNetworks, ...addedNetworks, ...gwbridgeNetworks];
+      }
+      
+      // 변경된 내용이 없으면 기존 배열 그대로 반환
+      return prevNetworks;
+    });
   }, []);
   
   // 테스트 데이터와 실제 데이터 간 전환을 위한 함수
   const refreshData = useCallback(() => {
-  }, []);
-
-  // ============= 노드 관련 함수 =============
-
-  /**
-   * 노드 추가 함수
-   * 
-   * 새로운 노드를 추가합니다. ID가 중복되면 추가하지 않습니다.
-   * 각 노드에 대한 gwbridge 네트워크도 자동으로 생성합니다.
-   * 
-   * @param node 추가할 노드 데이터
-   */
-  const addNode = useCallback((node: NodeData) => {
-    setNodes(prevNodes => {
-      // ID 중복 확인
-      const exists = prevNodes.some(n => n.id === node.id);
-      if (exists) {
-        console.warn(`노드 ID '${node.id}'가 이미 존재합니다.`);
-        return prevNodes;
-      }
-      
-      // 새 노드 추가
-      return [...prevNodes, node];
-    });
-    
-    // 해당 노드에 대한 gwbridge 네트워크 생성 및 추가
-    setNetworks(prevNetworks => {
-      // 새 노드의 gwbridge 네트워크 ID
-      const gwbridgeId = `network-gwbridge-${node.id}`;
-      
-      // 이미 해당 ID의 네트워크가 있는지 확인
-      const exists = prevNetworks.some(network => network.id === gwbridgeId);
-      if (exists) {
-        console.warn(`네트워크 ID '${gwbridgeId}'가 이미 존재합니다.`);
-        return prevNetworks;
-      }
-      
-      // 새 gwbridge 네트워크 생성
-      const newGwbridge: NetworkData = {
-        id: gwbridgeId,
-        name: 'docker_gwbridge',
-        driver: 'bridge',
-        scope: 'local',
-        networkInfo: {
-          subnet: '172.18.0.0/16',
-          gateway: '172.18.0.1'
-        },
-        createdAt: new Date().toISOString()
-      };
-      
-      // 기존 네트워크 목록에 새 gwbridge 추가
-      return [...prevNetworks, newGwbridge];
-    });
-  }, []);
-  
-  /**
-   * 노드 삭제 함수
-   * 
-   * 지정된 ID의 노드를 삭제합니다. 삭제 시 연결된 컨테이너도 모두 삭제됩니다.
-   * 
-   * @param nodeId 삭제할 노드의 ID
-   */
-  const removeNode = useCallback((nodeId: string) => {
-    setNodes(prevNodes => prevNodes.filter(node => node.id !== nodeId));
-    
-    // 노드가 삭제되면 해당 노드에 연결된 GWBridge 네트워크도 삭제
-    setNetworks(prevNetworks => 
-      prevNetworks.filter(network => 
-        !network.id.includes(`gwbridge-${nodeId}`)
-      )
-    );
-  }, []);
-  
-  /**
-   * 노드 업데이트 함수
-   * 
-   * 지정된 ID의 노드 데이터를 부분적으로 업데이트합니다.
-   * 
-   * @param nodeId 업데이트할 노드의 ID
-   * @param data 업데이트할 노드 데이터 객체
-   */
-  const updateNode = useCallback((nodeId: string, data: Partial<NodeData>) => {
-    setNodes(prevNodes => 
-      prevNodes.map(node => 
-        node.id === nodeId 
-          ? { ...node, ...data } 
-          : node
-      )
-    );
-  }, []);
-  
-  // ============= 컨테이너 관련 함수 =============
-  
-  /**
-   * 컨테이너 추가 함수
-   * 
-   * 지정된 노드에 새 컨테이너를 추가합니다.
-   * 
-   * @param nodeId 컨테이너를 추가할 노드의 ID
-   * @param container 추가할 컨테이너 데이터
-   */
-  const addContainer = useCallback((nodeId: string, container: ContainerData) => {
-    setNodes(prevNodes => 
-      prevNodes.map(node => {
-        if (node.id === nodeId) {
-          // 컨테이너 ID 중복 확인
-          const exists = node.containers.some(c => c.id === container.id);
-          if (exists) {
-            console.warn(`컨테이너 ID '${container.id}'가 이미 존재합니다.`);
-            return node;
-          }
-          
-          // ID 형식이 잘못된 경우 자동 수정 (nodeId를 포함하도록)
-          let containerId = container.id;
-          if (!containerId.includes(nodeId)) {
-            containerId = `${nodeId}-container-${node.containers.length + 1}`;
-            container = { ...container, id: containerId };
-          }
-          
-          // 기존 컨테이너 목록에 새 컨테이너 추가
-          return {
-            ...node,
-            containers: [...node.containers, container]
-          };
-        }
-        return node;
-      })
-    );
-  }, []);
-  
-  /**
-   * 컨테이너 삭제 함수
-   * 
-   * 지정된 노드에서 컨테이너를 삭제합니다.
-   * 
-   * @param nodeId 컨테이너가 속한 노드의 ID
-   * @param containerId 삭제할 컨테이너의 ID
-   */
-  const removeContainer = useCallback((nodeId: string, containerId: string) => {
-    setNodes(prevNodes => 
-      prevNodes.map(node => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            containers: node.containers.filter(container => container.id !== containerId)
-          };
-        }
-        return node;
-      })
-    );
-  }, []);
-  
-  /**
-   * 컨테이너 업데이트 함수
-   * 
-   * 지정된 노드에서 특정 컨테이너의 데이터를 부분적으로 업데이트합니다.
-   * 
-   * @param nodeId 컨테이너가 속한 노드의 ID
-   * @param containerId 업데이트할 컨테이너의 ID
-   * @param data 업데이트할 컨테이너 데이터 객체
-   */
-  const updateContainer = useCallback((nodeId: string, containerId: string, data: Partial<ContainerData>) => {
-    setNodes(prevNodes => 
-      prevNodes.map(node => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            containers: node.containers.map(container => 
-              container.id === containerId 
-                ? { ...container, ...data } 
-                : container
-            )
-          };
-        }
-        return node;
-      })
-    );
-  }, []);
-  
-  // ============= 네트워크 관련 함수 =============
-  
-  /**
-   * 네트워크 추가 함수
-   * 
-   * 새로운 네트워크를 추가합니다. ID가 중복되면 추가하지 않습니다.
-   * 
-   * @param network 추가할 네트워크 데이터
-   */
-  const addNetwork = useCallback((network: NetworkData) => {
-    setNetworks(prevNetworks => {
-      // ID 중복 확인
-      const exists = prevNetworks.some(n => n.id === network.id);
-      if (exists) {
-        console.warn(`네트워크 ID '${network.id}'가 이미 존재합니다.`);
-        return prevNetworks;
-      }
-      
-      // 새 네트워크 추가
-      return [...prevNetworks, network];
-    });
-  }, []);
-  
-  /**
-   * 네트워크 삭제 함수
-   * 
-   * 지정된 ID의 네트워크를 삭제합니다.
-   * 이 네트워크에 연결된 모든 컨테이너의 네트워크 연결도 제거합니다.
-   * 
-   * @param networkId 삭제할 네트워크의 ID
-   */
-  const removeNetwork = useCallback((networkId: string) => {
-    // 네트워크 삭제
-    setNetworks(prevNetworks => prevNetworks.filter(network => network.id !== networkId));
-    
-    // 모든 컨테이너에서 이 네트워크 연결 제거
-    setNodes(prevNodes => 
-      prevNodes.map(node => ({
-        ...node,
-        containers: node.containers.map(container => ({
-          ...container,
-          networks: container.networks.filter(network => network.id !== networkId)
-        }))
-      }))
-    );
-  }, []);
-  
-  /**
-   * 네트워크 업데이트 함수
-   * 
-   * 지정된 ID의 네트워크 데이터를 부분적으로 업데이트합니다.
-   * 
-   * @param networkId 업데이트할 네트워크의 ID
-   * @param data 업데이트할 네트워크 데이터 객체
-   */
-  const updateNetwork = useCallback((networkId: string, data: Partial<NetworkData>) => {
-    setNetworks(prevNetworks => 
-      prevNetworks.map(network => 
-        network.id === networkId 
-          ? { ...network, ...data } 
-          : network
-      )
-    );
-    
-    // 네트워크 이름이 변경된 경우 연결된 컨테이너의 네트워크 정보도 업데이트
-    if (data.name) {
-      setNodes(prevNodes => 
-        prevNodes.map(node => ({
-          ...node,
-          containers: node.containers.map(container => ({
-            ...container,
-            networks: container.networks.map(network => 
-              network.id === networkId 
-                ? { ...network, name: data.name || network.name } 
-                : network
-            )
-          }))
-        }))
-      );
-    }
-  }, []);
-  
-  // ============= 컨테이너-네트워크 연결 관리 함수 =============
-  
-  /**
-   * 컨테이너와 네트워크 연결 함수
-   * 
-   * 지정된 컨테이너를 네트워크에 연결합니다.
-   * 
-   * @param nodeId 컨테이너가 속한 노드의 ID
-   * @param containerId 연결할 컨테이너의 ID
-   * @param networkId 연결할 네트워크의 ID
-   * @param ipAddress 할당할 IP 주소 (선택 사항)
-   */
-  const connectContainerToNetwork = useCallback((
-    nodeId: string, 
-    containerId: string, 
-    networkId: string, 
-    ipAddress?: string
-  ) => {
-    // 네트워크 정보 가져오기
-    const network = networks.find(n => n.id === networkId);
-    if (!network) {
-      console.error(`네트워크 ID '${networkId}'를 찾을 수 없습니다.`);
-      return;
-    }
-    
-    setNodes(prevNodes => 
-      prevNodes.map(node => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            containers: node.containers.map(container => {
-              if (container.id === containerId) {
-                // 이미 해당 네트워크에 연결되어 있는지 확인
-                const alreadyConnected = container.networks.some(n => n.id === networkId);
-                if (alreadyConnected) {
-                  console.warn(`컨테이너 '${containerId}'는 이미 네트워크 '${networkId}'에 연결되어 있습니다.`);
-                  return container;
-                }
-                
-                // 네트워크 연결 추가
-                return {
-                  ...container,
-                  networks: [
-                    ...container.networks,
-                    {
-                      id: networkId,
-                      name: network.name,
-                      driver: network.driver,
-                      ipAddress: ipAddress || `10.0.0.${Math.floor(Math.random() * 254) + 1}`, // 랜덤 IP 할당
-                    }
-                  ]
-                };
-              }
-              return container;
-            })
-          };
-        }
-        return node;
-      })
-    );
-  }, [networks]);
-  
-  /**
-   * 컨테이너와 네트워크 연결 해제 함수
-   * 
-   * 지정된 컨테이너를 네트워크에서 연결 해제합니다.
-   * 
-   * @param nodeId 컨테이너가 속한 노드의 ID
-   * @param containerId 연결 해제할 컨테이너의 ID
-   * @param networkId 연결 해제할 네트워크의 ID
-   */
-  const disconnectContainerFromNetwork = useCallback((
-    nodeId: string, 
-    containerId: string, 
-    networkId: string
-  ) => {
-    setNodes(prevNodes => 
-      prevNodes.map(node => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            containers: node.containers.map(container => {
-              if (container.id === containerId) {
-                // 네트워크 연결 제거
-                return {
-                  ...container,
-                  networks: container.networks.filter(network => network.id !== networkId)
-                };
-              }
-              return container;
-            })
-          };
-        }
-        return node;
-      })
-    );
+    // 데이터 새로고침 로직 
+    // 여기서는 빈 함수로 유지 (폴링 메커니즘으로 대체)
   }, []);
 
   // Context 값 생성
@@ -470,27 +206,8 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
     setNetworks,
     refreshData,
     
-    // 데이터 초기화 함수
-    initializeData,
-    
-    // 노드 관련 함수
-    addNode,
-    removeNode,
-    updateNode,
-    
-    // 컨테이너 관련 함수
-    addContainer,
-    removeContainer,
-    updateContainer,
-    
-    // 네트워크 관련 함수
-    addNetwork,
-    removeNetwork,
-    updateNetwork,
-    
-    // 컨테이너-네트워크 연결 관리
-    connectContainerToNetwork,
-    disconnectContainerFromNetwork
+    // 데이터 초기화 및 동기화 함수
+    synchronizeData
   };
 
   return (
