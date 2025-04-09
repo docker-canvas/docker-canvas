@@ -5,7 +5,7 @@
  */
 
 // Docker API의 기본 URL
-const API_BASE_URL = 'http://localhost:3000/docker';
+const API_BASE_URL = '/docker';
 
 /**
  * 모든 서비스 목록을 가져오는 함수

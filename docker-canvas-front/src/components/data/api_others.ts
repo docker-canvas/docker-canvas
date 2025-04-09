@@ -3,7 +3,7 @@ import { NodeData } from '../types/node';
 import { NetworkData } from '../types/network';
 import { ContainerData } from '../types/container';
 
-let url: string = 'http://localhost:3001/docker'
+let url: string = '/docker'
 
 
 export function useTaskAPI() {
