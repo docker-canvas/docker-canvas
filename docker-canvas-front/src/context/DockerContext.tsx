@@ -57,116 +57,88 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
    * @param newNetworks 새로운 네트워크 데이터 배열
    */
   const synchronizeData = useCallback((newNodes: NodeData[], newNetworks: NetworkData[]) => {
-    // 노드 데이터 동기화
     setNodes(prevNodes => {
-      // 기존 노드 ID 집합
       const existingNodeIds = new Set(prevNodes.map(node => node.id));
-      // 새 노드 ID 집합
       const newNodeIds = new Set(newNodes.map(node => node.id));
-      
-      // 삭제 여부 확인 (삭제된 ID가 있는지)
-      const hasDeletedNodes = Array.from(existingNodeIds).some(id => !newNodeIds.has(id));
-      
-      // 유지할 노드들 (기존 노드 중 새 데이터에도 존재하는 노드들)
-      const persistedNodes = prevNodes
-        .filter(node => newNodeIds.has(node.id)) // 삭제된 노드 필터링
-        .map(node => {
-          // 해당 ID의 새 노드 데이터 찾기
-          const updatedNode = newNodes.find(n => n.id === node.id);
-          
-          // 데이터가 실제로 변경되었는지 정확히 비교
-          if (updatedNode && !areNodesEqual(node, updatedNode)) {
-            return updatedNode; // 실제로 변경된 경우만 새 데이터 사용
-          }
-          
-          return node; // 변경되지 않았으면 기존 객체 유지
-        });
-      
-      // 추가할 노드들 (새 노드 중 기존 데이터에 없는 노드들)
+      const deletedNodes = prevNodes.filter(node => !newNodeIds.has(node.id));
       const addedNodes = newNodes.filter(node => !existingNodeIds.has(node.id));
-      
-      // 변경된 노드가 있거나 추가/삭제된 노드가 있을 때만 새 배열 반환
-      if (persistedNodes.length !== prevNodes.length || addedNodes.length > 0 || hasDeletedNodes) {
-        return [...persistedNodes, ...addedNodes];
+  
+      let hasChanged = false;
+      const persistedNodes = prevNodes
+        .filter(node => newNodeIds.has(node.id))
+        .map(node => {
+          const updatedNode = newNodes.find(n => n.id === node.id);
+          const changed = updatedNode && !areNodesEqual(node, updatedNode);
+  
+          if (changed) {
+            hasChanged = true;
+            return updatedNode!;
+          }
+  
+          return node;
+        });
+  
+      const nextNodes = [...persistedNodes, ...addedNodes];
+      const hasAdded = addedNodes.length > 0;
+      const hasDeleted = deletedNodes.length > 0;
+      const hasNodeChanges = hasAdded || hasDeleted || hasChanged;
+  
+      if (hasNodeChanges) {
+        console.log('✅ Node state will update:', {
+          added: addedNodes.map(n => n.id),
+          deleted: deletedNodes.map(n => n.id),
+          changed: persistedNodes.filter(n => !prevNodes.some(p => p.id === n.id))
+        });
+        return nextNodes;
       }
-      
-      // 변경된 내용이 없으면 기존 배열 그대로 반환
+  
+      console.log('⏸️ Node state unchanged');
       return prevNodes;
     });
-    
-    // 네트워크 데이터 동기화
+  
     setNetworks(prevNetworks => {
-      // 기존 네트워크 ID 집합
       const existingNetworkIds = new Set(prevNetworks.map(network => network.id));
-      // 새 네트워크 ID 집합
       const newNetworkIds = new Set(newNetworks.map(network => network.id));
-      
-      // 삭제 여부 확인 (삭제된 ID가 있는지)
-      const hasDeletedNetworks = Array.from(existingNetworkIds).some(id => !newNetworkIds.has(id));
-      
-      // 유지할 네트워크들 (기존 네트워크 중 새 데이터에도 존재하는 네트워크들)
-      const persistedNetworks = prevNetworks
-        .filter(network => newNetworkIds.has(network.id)) // 삭제된 네트워크 필터링
-        .map(network => {
-          // 해당 ID의 새 네트워크 데이터 찾기
-          const updatedNetwork = newNetworks.find(n => n.id === network.id);
-          
-          // 데이터가 실제로 변경되었는지 정확히 비교
-          if (updatedNetwork && !areNetworksEqual(network, updatedNetwork)) {
-            return updatedNetwork; // 실제로 변경된 경우만 새 데이터 사용
-          }
-          
-          return network; // 변경되지 않았으면 기존 객체 유지
-        });
-      
-      // 추가할 네트워크들 (새 네트워크 중 기존 데이터에 없는 네트워크들)
+    
+      const deletedNetworks = prevNetworks.filter(network => !newNetworkIds.has(network.id));
       const addedNetworks = newNetworks.filter(network => !existingNetworkIds.has(network.id));
-      
-      // 추가된 노드에 대한 gwbridge 네트워크 생성
-      const gwbridgeNetworks: NetworkData[] = [];
-      
-      // 새 노드와 기존 노드 ID 비교
-      const existingNodeIds = new Set(nodes.map(node => node.id));
-      
-      // 새로 추가된 노드들에 대한 gwbridge 네트워크 생성
-      newNodes.forEach(node => {
-        // 이 노드가 새로 추가된 노드인지 확인
-        if (!existingNodeIds.has(node.id)) {
-          // 이 노드에 대한 gwbridge 네트워크 ID
-          const gwbridgeId = `network-gwbridge-${node.id}`;
-          
-          // 이미 생성된 gwbridge 네트워크가 있는지 확인
-          const existingGwbridge = [...persistedNetworks, ...addedNetworks, ...gwbridgeNetworks]
-            .find(network => network.id === gwbridgeId);
-          
-          // 존재하지 않으면 새로 생성하여 추가
-          if (!existingGwbridge) {
-            const newGwbridge: NetworkData = {
-              id: gwbridgeId,
-              name: 'docker_gwbridge',
-              driver: 'bridge', // bridge 타입으로 설정
-              scope: 'local',
-              networkInfo: {},
-              createdAt: new Date().toISOString()
-            };
-            
-            gwbridgeNetworks.push(newGwbridge);
+    
+      let hasChanged = false;
+      const persistedNetworks = prevNetworks
+        .filter(network => newNetworkIds.has(network.id))
+        .map(network => {
+          const updatedNetwork = newNetworks.find(n => n.id === network.id);
+          const changed = updatedNetwork && !areNetworksEqual(network, updatedNetwork);
+    
+          if (changed) {
+            hasChanged = true;
+            return updatedNetwork!;
           }
-        }
-      });
-      
-      // 변경된 네트워크가 있거나 추가/삭제된 네트워크가 있을 때만 새 배열 반환
-      if (persistedNetworks.length !== prevNetworks.length || 
-          addedNetworks.length > 0 || 
-          gwbridgeNetworks.length > 0 || 
-          hasDeletedNetworks) {
-        return [...persistedNetworks, ...addedNetworks, ...gwbridgeNetworks];
+    
+          return network;
+        });
+    
+      const nextNetworks = [...persistedNetworks, ...addedNetworks];
+    
+      const hasNetworkChanges =
+        hasChanged ||
+        addedNetworks.length > 0 ||
+        deletedNetworks.length > 0;
+    
+      if (hasNetworkChanges) {
+        console.log('✅ Network state will update:', {
+          added: addedNetworks.map(n => n.id),
+          deleted: deletedNetworks.map(n => n.id),
+          changed: persistedNetworks.filter(n => !prevNetworks.some(p => p.id === n.id)),
+        });
+        return nextNetworks;
       }
-      
-      // 변경된 내용이 없으면 기존 배열 그대로 반환
+    
+      console.log('⏸️ Network state unchanged');
       return prevNetworks;
-    });
-  }, [nodes]);
+    });    
+  }, [nodes, networks]);
+  
   
   // 테스트 데이터와 실제 데이터 간 전환을 위한 함수
   const refreshData = useCallback(() => {

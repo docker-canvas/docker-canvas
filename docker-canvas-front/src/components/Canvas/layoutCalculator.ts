@@ -313,10 +313,6 @@ export const calculateLayout = (
   });
   
   // 5. 각 노드별 GWBridge 네트워크 배치
-  const gwbridgeNetworks = networks.filter(n => 
-    n.driver === 'bridge' || n.name == 'docker_gwbridge'
-  );
-
   for (let i = 0; i < sortedNodes.length; i++) {
     const nodeId = sortedNodes[i].id;
     const nodeX = layoutInfo.nodePositions[nodeId].x;
@@ -324,39 +320,41 @@ export const calculateLayout = (
     
     const gwbridgeId = `network-gwbridge-${nodeId}`;
     
-    // 해당 ID를 가진 네트워크 찾기 - fallback 제거
-    const gwbridgeNetwork = gwbridgeNetworks.find(n => n.id === gwbridgeId);
-    console.log(gwbridgeNetwork);
+    const gwbridgeNetwork: NetworkData = {
+      id: gwbridgeId,
+      name: 'docker_gwbridge',
+      driver: 'bridge',
+      scope: 'local',
+      networkInfo: {},
+      createdAt: new Date().toISOString()
+    };
     
-    // 매칭되는 gwbridge가 있는 경우에만 배치
-    if (gwbridgeNetwork) {
-      const connectedHandles: ContainerHandleInfo[] = Object.values(layoutInfo.containerToGWBridge)
-        .filter(info => info.gwbridgeId === gwbridgeId)
-        .map(info => ({
-          containerId: info.containerId,
-          xPosition: info.xOffset
-        }));
-      
-      const gwbridgeWithHandles: NetworkData = {
-        ...gwbridgeNetwork,
-        id: gwbridgeId,
-        containerHandles: connectedHandles
-      };
-      
-      nodes.push({
-        id: gwbridgeId,
-        type: 'networkNode',
-        position: { 
-          x: nodeX, 
-          y: layoutInfo.layerYPositions.gwbridge
-        },
-        data: gwbridgeWithHandles,
-        style: { 
-          width: nodeWidth,
-          height: layoutConfig.gwbridgeNetworkHeight 
-        }
-      });
-    }
+    const connectedHandles: ContainerHandleInfo[] = Object.values(layoutInfo.containerToGWBridge)
+      .filter(info => info.gwbridgeId === gwbridgeId)
+      .map(info => ({
+        containerId: info.containerId,
+        xPosition: info.xOffset
+      }));
+    
+    const gwbridgeWithHandles: NetworkData = {
+      ...gwbridgeNetwork,
+      id: gwbridgeId,
+      containerHandles: connectedHandles
+    };
+    
+    nodes.push({
+      id: gwbridgeId,
+      type: 'networkNode',
+      position: { 
+        x: nodeX, 
+        y: layoutInfo.layerYPositions.gwbridge
+      },
+      data: gwbridgeWithHandles,
+      style: { 
+        width: nodeWidth,
+        height: layoutConfig.gwbridgeNetworkHeight 
+      }
+    });
   }
   
   // 6. 노드 배치

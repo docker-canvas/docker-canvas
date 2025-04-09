@@ -117,7 +117,6 @@ const DataInitializer: React.FC = () => {
       
       // DockerContext에 데이터 동기화
       synchronizeData(nodes, networks);
-      console.log('데이터 동기화 완료:', { nodes, networks });
     } catch (error) {
       console.error('데이터 가져오기 실패:', error);
     } finally {
