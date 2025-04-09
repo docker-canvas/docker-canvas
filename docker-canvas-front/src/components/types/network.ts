@@ -32,7 +32,7 @@ export interface NetworkData {
   networkInfo: NetworkInfo;         // 네트워크 기본 정보 (subnet, gateway, IP)
   attachable?: boolean;             // 컨테이너 수동 연결 가능 여부
   internal?: boolean;               // 내부 네트워크 여부
-  labels?: Record<string, string>;  // 네트워크 라벨
+  labels?: object;  // 네트워크 라벨
   createdAt?: string;               // 생성 일시
   containerHandles?: ContainerHandleInfo[];  // 컨테이너 핸들 정보 - 레이아웃 계산기에서 설정
 }

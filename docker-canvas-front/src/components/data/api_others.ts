@@ -18,7 +18,8 @@ export function useTaskAPI() {
             for (const data of json) {
                 const curr_container: ContainerData = {
                     id: data.ID,
-                    ...(data.NodeI && { labels: data.Labels }),
+                    ...(data.NodeID && { nodeId: data.NodeID }),
+                    ...(data.Labels && { labels: data.Labels }), //TODO
                     image: data.Spec.ContainerSpec.Image,
                     status: data.Status.State,
                     networks: data.NetworksAttachments.map((network: any) => ({
@@ -42,26 +43,24 @@ export function useTaskAPI() {
 
 export function useNodeAPI() {
     const [nodeData, setNodeData] = useState<NodeData[]>([]);
+    const { taskData } = useTaskAPI();
 
     useEffect(() => {
         fetch(url + '/nodes')
         .then(response => response.json())
         .then(json => {
             const nodes: NodeData[] = [];
-            // if (taskData.length < 1) {
-            //     useTaskAPI(); // to make sure tasks are pulled
-            // }
         
             for (const data of json) {
                 const curr_node: NodeData = {
                     id: data.ID,
-                    hostname: data.Description.hostname,
-                    role: data.Spec.role,
+                    hostname: data.Description.Hostname,
+                    role: data.Spec.Role,
                     status: data.Status.State,
-                    containers: [],//taskData.filter( (task: ContainerData) => task.nodeId == data.ID ), // only matching NodeIDs
-                    labels: data.Labels,
-                    createdAt: data.createdAt,
-                    updatedAt: data.updatedAt
+                    containers: taskData.filter( (task: ContainerData) => task.nodeId == data.ID ), // only matching NodeIDs
+                    labels: data.Spec.Labels, // TODO
+                    createdAt: data.CreatedAt,
+                    updatedAt: data.UpdatedAt
                 }
                 nodes.push(curr_node);
             }
@@ -69,7 +68,7 @@ export function useNodeAPI() {
             setNodeData(nodes);
         })
         .catch(error => console.log(error));
-    }, []);
+    }, [taskData]);
 
     return { nodeData };
 }
@@ -80,27 +79,27 @@ export function useNetworkAPI() {
     useEffect(() => {
         fetch(url + '/networks')
         .then(response => response.json())
-        .then(json => {
-            console.log('networks');
-            console.log(json);      
+        .then(json => {     
             const networks: NetworkData[] = [];
 
             for (const data of json) {
-                const curr_network: NetworkData = {
-                    id: data.Id,
-                    name: data.Name,
-                    driver: data.Driver,
-                    scope: data.Scope,
-                    networkInfo: {
-                        ...(data.IPAM.Config.subnet && { subnet: data.IPAM.Config.subnet }),
-                        ...(data.IPAM.Config.gateway && { subnet: data.IPAM.Config.gateway }),
-                    },
-                    attachable: data.Attachable,
-                    internal: data.Internal,
-                    ...(data.Labels && { labels: data.Labels }),
-                    createdAt: data.createdAt
+                if (data.Scope === 'swarm') {
+                    const curr_network: NetworkData = {
+                        id: data.Id,
+                        name: data.Name,
+                        driver: data.Driver,
+                        scope: data.Scope,
+                        networkInfo: {
+                            ...(data.IPAM.Config.subnet && { subnet: data.IPAM.Config.subnet }),
+                            ...(data.IPAM.Config.gateway && { subnet: data.IPAM.Config.gateway }),
+                        },
+                        attachable: data.Attachable,
+                        internal: data.Internal,
+                        ...(data.Labels && { labels: data.Labels }),
+                        createdAt: data.Created
+                    }
+                    networks.push(curr_network);
                 }
-                networks.push(curr_network);
             }
 
             setNetworkData(networks);
