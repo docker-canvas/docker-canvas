@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDockerContext } from '../../context/DockerContext';
+import { createService } from '../data/api_services';
 
 /**
  * 서비스 생성 컴포넌트
@@ -9,6 +10,11 @@ import { useDockerContext } from '../../context/DockerContext';
  */
 const ServiceCreate: React.FC = () => {
   const { networks, nodes } = useDockerContext();
+
+    // 로딩 및 에러 상태 추가
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<boolean>(false);
 
   // 필터링된 Overlay 네트워크만 표시
   const overlayNetworks = networks.filter(network => 
@@ -161,7 +167,8 @@ const checkConstraint = () => {
   };
   
   // 서비스 생성 함수
-  const createService = async () => {
+  // 서비스 생성 함수 수정
+  const createServiceHandler = async () => {
     // 필수 입력 확인
     if (!image.trim()) {
       alert('이미지를 입력하세요.');
@@ -220,8 +227,35 @@ const checkConstraint = () => {
     
     console.log('Service configuration:', serviceConfig);
     
-    // 여기에 실제 API 호출 구현 예정
-    alert('서비스 생성 구현 예정:\n' + JSON.stringify(serviceConfig, null, 2));
+    // 실제 API 호출 구현
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    
+    try {
+      const response = await createService(serviceConfig);
+      console.log('Service created successfully:', response);
+      setSuccess(true);
+      alert('서비스가 성공적으로 생성되었습니다.');
+      
+      // 폼 초기화
+      setImage('');
+      setServiceName('');
+      setServiceMode('replicated');
+      setReplicas(1);
+      setConstraint('');
+      setNetworkConfigs([{ id: '', useExisting: true, newNetworkName: '' }]);
+      setEnvVars([{ key: '', value: '' }]);
+      setPublishPorts([{ internal: '', external: '', protocol: 'tcp' }]);
+      
+
+    } catch (err) {
+      console.error('Failed to create service:', err);
+      setError(`서비스 생성 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+      alert(`서비스 생성 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -523,10 +557,11 @@ const checkConstraint = () => {
       <div className="pt-4 sticky bottom-0 bg-white py-4">
         <button
           type="button"
-          onClick={createService}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          onClick={createServiceHandler}
+          disabled={loading}
+          className={`w-full px-4 py-2 ${loading ? 'bg-blue-400' : 'bg-blue-600'} text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 relative`}
         >
-          서비스 생성
+          {loading ? '생성 중...' : '서비스 생성'}
         </button>
       </div>
     </div>
