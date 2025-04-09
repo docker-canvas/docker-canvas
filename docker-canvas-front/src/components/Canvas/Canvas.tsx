@@ -10,6 +10,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ToolBar from './ToolBar';
+import ServiceManagement from '../Services/ServiceManagement'; // ServiceManagement 컴포넌트 추가
 import nodeTypes from '../types/nodeType';
 import edgeTypes from '../types/edgeType';
 import { generateLayout } from './layoutEngine';
@@ -26,6 +27,7 @@ import { useDockerContext } from '../../context/DockerContext';
  * - DockerContext에서 노드 및 네트워크 데이터 가져오기
  * - 데이터 변경 시 레이아웃 다시 계산
  * - 테스트 모드 전환 로직 제거 (Context로 이동)
+ * - 서비스 관리 컴포넌트 통합
  * 
  * 주요 기능:
  * - Docker Swarm 노드 표시 및 관리
@@ -37,6 +39,7 @@ import { useDockerContext } from '../../context/DockerContext';
  * - 노드 간 연결(엣지) 표시
  * - 캔버스 확대/축소, 이동 기능
  * - 캔버스 초기화 기능
+ * - 서비스 관리 기능 (생성, 삭제, 관리)
  */
 const Canvas: React.FC = () => {
   // DockerContext에서 노드 및 네트워크 데이터 가져오기
@@ -46,7 +49,9 @@ const Canvas: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [activeMode, setActiveMode] = useState('hand');
-  const { eventData, loading, error } = useStreamDockerEvents('http://localhost:3001/docker/events');
+  
+  // 서비스 관리 모달 상태
+  const [showServiceManagement, setShowServiceManagement] = useState(false);
   
   // ResizeObserver 오류 방지를 위한 초기화 상태 추가
   const [initialized, setInitialized] = useState(false);
@@ -108,15 +113,27 @@ const Canvas: React.FC = () => {
     }, 100);
   };
 
+  // 서비스 관리 모달 토글 핸들러
+  const handleServiceManage = () => {
+    setShowServiceManagement(prev => !prev);
+  };
+
   return (
     <div className="w-full h-screen relative" ref={containerRef}>
-      {/* 툴바 컴포넌트 - 줌인/줌아웃, 패닝 모드, 새로고침 기능 제공 */}
+      {/* 툴바 컴포넌트 - 줌인/줌아웃, 패닝 모드, 새로고침, 서비스 관리 기능 제공 */}
       <ToolBar 
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onPanMode={handlePanMode}
         onRefresh={handleRefresh}
+        onServiceManage={handleServiceManage}
         activeMode={activeMode}
+      />
+      
+      {/* 서비스 관리 모달 */}
+      <ServiceManagement 
+        isOpen={showServiceManagement} 
+        onClose={() => setShowServiceManagement(false)} 
       />
       
       {/* ReactFlow 캔버스 래퍼 */}
