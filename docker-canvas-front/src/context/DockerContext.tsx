@@ -74,6 +74,30 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
    */
   const initializeData = useCallback((initialNodes: NodeData[], initialNetworks: NetworkData[]) => {
     setNodes(initialNodes);
+
+    // 각 노드마다 gwbridge 네트워크가 있는지 확인하고, 없으면 추가
+    initialNodes.forEach(node => {
+    // 이 노드에 대한 gwbridge 네트워크 ID
+    const gwbridgeId = `network-gwbridge-${node.id}`;
+    
+    // 해당 ID의 gwbridge가 이미 존재하는지 확인
+    const existingGwbridge = initialNetworks.find(network => network.id === gwbridgeId);
+    
+    // 존재하지 않으면 새로 생성하여 추가
+    if (!existingGwbridge) {
+      const newGwbridge: NetworkData = {
+        id: gwbridgeId,
+        name: 'docker_gwbridge',
+        driver: 'bridge', // bridge 타입으로 설정
+        scope: 'local',
+        networkInfo: {
+        },
+        createdAt: new Date().toISOString()
+      };
+      
+      initialNetworks.push(newGwbridge);
+    }
+  });
     setNetworks(initialNetworks);
   }, []);
   
@@ -82,11 +106,12 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
   }, []);
 
   // ============= 노드 관련 함수 =============
-  
+
   /**
    * 노드 추가 함수
    * 
    * 새로운 노드를 추가합니다. ID가 중복되면 추가하지 않습니다.
+   * 각 노드에 대한 gwbridge 네트워크도 자동으로 생성합니다.
    * 
    * @param node 추가할 노드 데이터
    */
@@ -101,6 +126,35 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
       
       // 새 노드 추가
       return [...prevNodes, node];
+    });
+    
+    // 해당 노드에 대한 gwbridge 네트워크 생성 및 추가
+    setNetworks(prevNetworks => {
+      // 새 노드의 gwbridge 네트워크 ID
+      const gwbridgeId = `network-gwbridge-${node.id}`;
+      
+      // 이미 해당 ID의 네트워크가 있는지 확인
+      const exists = prevNetworks.some(network => network.id === gwbridgeId);
+      if (exists) {
+        console.warn(`네트워크 ID '${gwbridgeId}'가 이미 존재합니다.`);
+        return prevNetworks;
+      }
+      
+      // 새 gwbridge 네트워크 생성
+      const newGwbridge: NetworkData = {
+        id: gwbridgeId,
+        name: 'docker_gwbridge',
+        driver: 'bridge',
+        scope: 'local',
+        networkInfo: {
+          subnet: '172.18.0.0/16',
+          gateway: '172.18.0.1'
+        },
+        createdAt: new Date().toISOString()
+      };
+      
+      // 기존 네트워크 목록에 새 gwbridge 추가
+      return [...prevNetworks, newGwbridge];
     });
   }, []);
   

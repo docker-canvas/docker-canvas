@@ -15,17 +15,6 @@ import { ContainerData } from '../types/container';
  */
 export const sampleNetworks: NetworkData[] = [
   {
-    id: 'network-external',
-    name: 'docker_gwbridge',
-    driver: 'bridge',
-    scope: 'local',
-    networkInfo: {
-      subnet: '192.168.1.0/24',
-      gateway: '192.168.1.1'
-    },
-    createdAt: new Date().toISOString()
-  },
-  {
     id: 'network-ingress',
     name: 'ingress',
     driver: 'overlay',
@@ -73,61 +62,6 @@ export const sampleNetworks: NetworkData[] = [
     attachable: true,
     createdAt: new Date().toISOString()
   },
-  {
-    id: 'network-gwbridge-node-1',  // 노드 ID를 포함한 고유 ID 사용
-    name: 'docker_gwbridge',
-    driver: 'bridge',
-    scope: 'local',
-    networkInfo: {
-      subnet: '172.18.0.0/16',
-      gateway: '172.18.0.1'
-    },
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-gwbridge-node-2',
-    name: 'docker_gwbridge',
-    driver: 'bridge',
-    scope: 'local',
-    networkInfo: {
-      subnet: '172.18.0.0/16',
-      gateway: '172.18.0.1'
-    },
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-gwbridge-node-3',
-    name: 'docker_gwbridge',
-    driver: 'bridge',
-    scope: 'local',
-    networkInfo: {
-      subnet: '172.18.0.0/16',
-      gateway: '172.18.0.1'
-    },
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-gwbridge-node-5',  // 노드 5에 대한 gwbridge 추가
-    name: 'docker_gwbridge',
-    driver: 'bridge',
-    scope: 'local',
-    networkInfo: {
-      subnet: '172.18.0.0/16',
-      gateway: '172.18.0.1'
-    },
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'network-bridge',  // 일반 bridge 네트워크 추가
-    name: 'bridge',
-    driver: 'bridge',
-    scope: 'local',
-    networkInfo: {
-      subnet: '172.17.0.0/16',
-      gateway: '172.17.0.1'
-    },
-    createdAt: new Date().toISOString()
-  }
 ];
 
 /**
@@ -147,19 +81,8 @@ const getNetworkIdByName = (name: string): string | undefined => {
  */
 export const getSampleContainers = (nodeId: string, count: number): ContainerData[] => {
   return Array.from({ length: count }, (_, i) => {
-    // 네트워크 정보에 ID 추가
-    const bridgeNetworkName = i % 2 === 0 ? 'bridge' : 'docker_gwbridge';
-    const bridgeNetworkId = i % 2 === 0 
-      ? 'network-bridge' 
-      : `network-gwbridge-${nodeId}`;
-    
+
     const networks = [
-      {
-        id: bridgeNetworkId,
-        name: bridgeNetworkName,
-        driver: 'bridge',
-        ipAddress: `172.17.0.${10 + i}`
-      }
     ];
     
     // 일부 컨테이너에 overlay 네트워크 추가
