@@ -14,8 +14,6 @@ import ServiceManagement from '../Services/ServiceManagement'; // ServiceManagem
 import nodeTypes from '../types/nodeType';
 import edgeTypes from '../types/edgeType';
 import { generateLayout } from './layoutEngine';
-import { useStreamDockerEvents } from '../data/api_events'
-import { simpleSampleNetworks, simpleSampleNodes } from '../data/simpleSampleData';
 import { useDockerContext } from '../../context/DockerContext';
 
 /**
@@ -122,8 +120,6 @@ const Canvas: React.FC = () => {
     <div className="w-full h-screen relative" ref={containerRef}>
       {/* 툴바 컴포넌트 - 줌인/줌아웃, 패닝 모드, 새로고침, 서비스 관리 기능 제공 */}
       <ToolBar 
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
         onPanMode={handlePanMode}
         onRefresh={handleRefresh}
         onServiceManage={handleServiceManage}
