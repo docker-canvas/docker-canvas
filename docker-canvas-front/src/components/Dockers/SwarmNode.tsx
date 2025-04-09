@@ -24,9 +24,10 @@ export interface SwarmNodeProps {
  * - 노드 호스트명 및 상태 정보 표시
  * - 모든 정보 직접 표시 (호버 기능 제거)
  * - 상단 핸들로 컨테이너 연결, 하단 핸들로 네트워크 연결
+ * - Docker API 응답 구조에 맞춰 정보 표시
  */
 const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { // 기본값 추가
-  // 상세 정보 표시 상태 관리 (추가)
+  // 상세 정보 표시 상태 관리
   const [showDetails, setShowDetails] = useState(false);
   
   // 노드 역할에 따른 스타일 계산
@@ -55,6 +56,20 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
         return 'bg-yellow-500';
       default:
         return 'bg-gray-500';
+    }
+  };
+
+  // 가용성 상태에 따른 배지 스타일
+  const getAvailabilityBadgeStyle = () => {
+    switch (data.availability) {
+      case 'active':
+        return 'bg-green-700';
+      case 'pause':
+        return 'bg-yellow-700';
+      case 'drain':
+        return 'bg-red-700';
+      default:
+        return 'bg-gray-700';
     }
   };
 
@@ -111,6 +126,39 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
       </div>
     );
   };
+
+  // 리소스 정보 렌더링 함수
+  const renderResources = () => {
+    if (!data.resources) return null;
+    
+    return (
+      <div className="mt-4">
+        <div className="text-sm font-bold mb-2">리소스:</div>
+        <div className="text-xs text-gray-300">
+          {data.resources.nanoCPUs && (
+            <div>CPU: {data.resources.nanoCPUs / 1000000000}코어</div>
+          )}
+          {data.resources.memoryBytes && (
+            <div>메모리: {Math.round(data.resources.memoryBytes / (1024 * 1024 * 1024) * 10) / 10}GB</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // 플랫폼 및 엔진 정보 렌더링 함수
+  const renderPlatformInfo = () => {
+    return (
+      <div className="mt-4">
+        <div className="text-sm font-bold mb-2">시스템 정보:</div>
+        <div className="text-xs text-gray-300">
+          {data.platform?.os && <div>OS: {data.platform.os}</div>}
+          {data.platform?.architecture && <div>아키텍처: {data.platform.architecture}</div>}
+          {data.engineInfo?.engineVersion && <div>Docker: {data.engineInfo.engineVersion}</div>}
+        </div>
+      </div>
+    );
+  };
   
   return (
     <div
@@ -138,7 +186,12 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
         {/* 헤더 섹션 */}
         <div className="mb-4">
           {/* 호스트명 */}
-          <div className="hostname font-bold text-xl mb-2">{data.hostname}</div>
+          <div className="hostname font-bold text-xl mb-2">
+            {data.hostname}
+            {data.managerStatus?.leader && (
+              <span className="ml-2 text-xs bg-yellow-500 text-black rounded-full px-2 py-0.5">리더</span>
+            )}
+          </div>
           
           {/* 상태 및 역할 정보 */}
           <div className="flex items-center justify-between">
@@ -146,10 +199,29 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
               <span className={`status-indicator ${getStatusIndicatorStyle()}`}></span>
               <span className="ml-1">{data.status || 'Unknown'}</span>
             </div>
-            <span className="label">{data.role}</span>
+            <div className="flex items-center space-x-2">
+              <span className="label">{data.role}</span>
+              {data.availability && (
+                <span className={`text-xs px-2 py-0.5 rounded ${getAvailabilityBadgeStyle()}`}>
+                  {data.availability}
+                </span>
+              )}
+            </div>
           </div>
+          
+          {/* IP 주소 정보 */}
+          {data.addr && (
+            <div className="text-sm text-gray-300 mt-1">
+              주소: {data.addr}
+            </div>
+          )}
         </div>
         
+        {/* 리소스 정보 표시 */}
+        {renderResources()}
+        
+        {/* 플랫폼 및 엔진 정보 표시 */}
+        {renderPlatformInfo()}
         
         {/* 라벨 정보 */}
         {renderLabels()}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDockerContext } from '../../context/DockerContext';
 import { createService } from '../data/api_services';
 import { createNetwork } from '../data/api_networks';
+import { NodeData } from '../types/node';
 
 /**
  * 서비스 생성 컴포넌트
@@ -46,7 +47,9 @@ const ServiceCreate: React.FC = () => {
   // constraint 조건 검사 결과
   const [matchingNodes, setMatchingNodes] = useState<number | null>(null);
   
-  // 제약 조건 확인 함수
+  // ServiceCreate.tsx에서 constraint 확인 함수 및 도움말을 수정
+
+    // constraint 조건 확인 함수 수정
     const checkConstraint = () => {
     if (!constraint.trim()) {
       setMatchingNodes(nodes.length); // 제약 조건이 없으면 모든 노드가 대상
@@ -54,45 +57,57 @@ const ServiceCreate: React.FC = () => {
     }
     
     try {
-      // 간단한 형식 체크 (node.labels.key==value 또는 node.role==manager)
-      const matches = constraint.match(/node\.(labels\.([a-zA-Z0-9_]+)|role)==([a-zA-Z0-9_]+)/);
+      // Docker의 실제 constraint 형식에 맞는 정규식 패턴
+      // node.role == manager, node.labels.zone == seoul 등의 형식
+      const matches = constraint.match(/node\.(role|labels\.([a-zA-Z0-9_]+))\s*(==|!=)\s*([a-zA-Z0-9_]+)/);
       
       if (!matches) {
-        alert('제약 조건 형식이 올바르지 않습니다. "node.labels.key==value" 또는 "node.role==manager" 형식을 사용하세요.');
+        alert('제약 조건 형식이 올바르지 않습니다. "node.role == manager" 또는 "node.labels.key == value" 형식을 사용하세요.');
         return;
       }
       
-      const type = matches[1].startsWith('labels.') ? 'labels' : 'role';
-      let key = '';
-      let value = '';
+      const property = matches[1]; // role 또는 labels.key
+      const labelKey = matches[2]; // labels인 경우 키값
+      const operator = matches[3]; // == 또는 !=
+      const value = matches[4];    // 비교할 값
       
-      if (type === 'labels') {
-        key = matches[2];
-        value = matches[3];
-        
-        // 라벨 조건에 맞는 노드 찾기 - object 타입으로 안전하게 접근
-        const filtered = nodes.filter(node => 
-          node.labels && 
-          typeof node.labels === 'object' && 
-          node.labels !== null && 
-          (key in node.labels) && 
-          (node.labels as any)[key] === value
-        );
-        setMatchingNodes(filtered.length);
-      } else {
-        value = matches[3];
-        
-        // 역할 조건에 맞는 노드 찾기
-        const filtered = nodes.filter(node => 
-          node.role.toLowerCase() === value.toLowerCase()
-        );
-        setMatchingNodes(filtered.length);
+      // 초기화: 빈 배열로 시작
+      let filteredNodes: NodeData[] = [];
+      
+      if (property === 'role') {
+        filteredNodes = nodes.filter(node => {
+          return operator === '==' ? node.role === value : node.role !== value;
+        });
+      } else if (property.startsWith('labels.')) {
+        filteredNodes = nodes.filter(node => {
+          if (!node.labels) return operator === '!='; // 라벨이 없는 경우 != 연산에만 true
+          
+          const actualValue = node.labels[labelKey];
+          return operator === '==' 
+            ? actualValue === value 
+            : actualValue !== value;
+        });
       }
+      
+      setMatchingNodes(filteredNodes.length);
     } catch (error) {
       console.error('Constraint parsing error:', error);
       alert('제약 조건을 처리하는 중 오류가 발생했습니다.');
     }
   };
+  
+  // constraint 도움말 표시를 위한 컴포넌트
+  const ConstraintHelpTooltip = () => (
+    <div className="mt-2 text-xs text-gray-600 bg-gray-100 p-2 rounded-md">
+      <p className="font-semibold mb-1">사용 가능한 제약 조건 예시:</p>
+      <ul className="list-disc pl-4 space-y-1">
+        <li>node.role == manager - 매니저 노드에만 배치</li>
+        <li>node.labels.zone == seoul - 특정 라벨이 있는 노드</li>
+        <li>node.labels.zone != jeju - 특정 라벨 값을 갖지 않는 노드</li>
+      </ul>
+      <p className="mt-1 italic">참고: Docker Swarm은 '==' 및 '!=' 연산자만 지원합니다.</p>
+    </div>
+  );
   
   // 포트 필드 추가 함수
   const addPortField = () => {
