@@ -11,6 +11,7 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { NodeData } from '../components/types/node';
 import { NetworkData } from '../components/types/network';
+import { areNetworksEqual, areNodesEqual } from './objectComparison';
 
 // Docker 인프라 컨텍스트 인터페이스 정의
 interface DockerContextType {
@@ -56,14 +57,14 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
    * @param newNetworks 새로운 네트워크 데이터 배열
    */
   const synchronizeData = useCallback((newNodes: NodeData[], newNetworks: NetworkData[]) => {
-  // 노드 데이터 동기화
+    // 노드 데이터 동기화
     setNodes(prevNodes => {
       // 기존 노드 ID 집합
       const existingNodeIds = new Set(prevNodes.map(node => node.id));
       // 새 노드 ID 집합
       const newNodeIds = new Set(newNodes.map(node => node.id));
       
-      // 삭제 여부 확인 (삭제된 ID가 있는지) - Set을 Array.from으로 변환
+      // 삭제 여부 확인 (삭제된 ID가 있는지)
       const hasDeletedNodes = Array.from(existingNodeIds).some(id => !newNodeIds.has(id));
       
       // 유지할 노드들 (기존 노드 중 새 데이터에도 존재하는 노드들)
@@ -73,18 +74,8 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
           // 해당 ID의 새 노드 데이터 찾기
           const updatedNode = newNodes.find(n => n.id === node.id);
           
-          // 데이터가 실제로 변경되었는지 확인 (깊은 비교 대신 필요한 필드만 비교)
-          if (updatedNode && (
-            node.hostname !== updatedNode.hostname ||
-            node.role !== updatedNode.role ||
-            node.status !== updatedNode.status ||
-            JSON.stringify(node.labels) !== JSON.stringify(updatedNode.labels) ||
-            node.updatedAt !== updatedNode.updatedAt ||
-            // 컨테이너 비교 로직 추가
-            node.containers.length !== updatedNode.containers.length ||
-            JSON.stringify(node.containers.map(c => c.id).sort()) !== 
-            JSON.stringify(updatedNode.containers.map(c => c.id).sort())
-          )) {
+          // 데이터가 실제로 변경되었는지 정확히 비교
+          if (updatedNode && !areNodesEqual(node, updatedNode)) {
             return updatedNode; // 실제로 변경된 경우만 새 데이터 사용
           }
           
@@ -95,12 +86,7 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
       const addedNodes = newNodes.filter(node => !existingNodeIds.has(node.id));
       
       // 변경된 노드가 있거나 추가/삭제된 노드가 있을 때만 새 배열 반환
-      const hasChangedNodes = persistedNodes.some((node, i) => {
-        const prevNode = prevNodes.find(p => p.id === node.id);
-        return node !== prevNode;
-      });
-      
-      if (hasChangedNodes || addedNodes.length > 0 || hasDeletedNodes) {
+      if (persistedNodes.length !== prevNodes.length || addedNodes.length > 0 || hasDeletedNodes) {
         return [...persistedNodes, ...addedNodes];
       }
       
@@ -125,16 +111,8 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
           // 해당 ID의 새 네트워크 데이터 찾기
           const updatedNetwork = newNetworks.find(n => n.id === network.id);
           
-          // 데이터가 실제로 변경되었는지 확인 (깊은 비교 대신 필요한 필드만 비교)
-          if (updatedNetwork && (
-            network.name !== updatedNetwork.name ||
-            network.driver !== updatedNetwork.driver ||
-            network.scope !== updatedNetwork.scope ||
-            JSON.stringify(network.networkInfo) !== JSON.stringify(updatedNetwork.networkInfo) ||
-            network.attachable !== updatedNetwork.attachable ||
-            network.internal !== updatedNetwork.internal ||
-            JSON.stringify(network.labels) !== JSON.stringify(updatedNetwork.labels)
-          )) {
+          // 데이터가 실제로 변경되었는지 정확히 비교
+          if (updatedNetwork && !areNetworksEqual(network, updatedNetwork)) {
             return updatedNetwork; // 실제로 변경된 경우만 새 데이터 사용
           }
           
@@ -178,19 +156,17 @@ export const DockerProvider: React.FC<DockerProviderProps> = ({ children }) => {
       });
       
       // 변경된 네트워크가 있거나 추가/삭제된 네트워크가 있을 때만 새 배열 반환
-      const hasChangedNetworks = persistedNetworks.some((network, i) => {
-        const prevNetwork = prevNetworks.find(p => p.id === network.id);
-        return network !== prevNetwork;
-      });
-      
-      if (hasChangedNetworks || addedNetworks.length > 0 || gwbridgeNetworks.length > 0 || hasDeletedNetworks) {
+      if (persistedNetworks.length !== prevNetworks.length || 
+          addedNetworks.length > 0 || 
+          gwbridgeNetworks.length > 0 || 
+          hasDeletedNetworks) {
         return [...persistedNetworks, ...addedNetworks, ...gwbridgeNetworks];
       }
       
       // 변경된 내용이 없으면 기존 배열 그대로 반환
       return prevNetworks;
     });
-  }, []);
+  }, [nodes]);
   
   // 테스트 데이터와 실제 데이터 간 전환을 위한 함수
   const refreshData = useCallback(() => {

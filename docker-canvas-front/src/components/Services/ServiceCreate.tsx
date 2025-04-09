@@ -10,7 +10,7 @@ import { NodeData } from '../types/node';
  * Docker 서비스를 생성하기 위한 폼을 제공합니다.
  * 이미지, 서비스 이름, 네트워크, publish 설정, constraint 조건, 환경변수 등을 지정할 수 있습니다.
  */
-const ServiceCreate: React.FC = () => {
+const ServiceCreate: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { networks, nodes } = useDockerContext();
 
     // 로딩 및 에러 상태 추가
@@ -246,10 +246,19 @@ const ServiceCreate: React.FC = () => {
             try {
               const newNetwork = await createNetwork(config.newNetworkName.trim());
               
-              // 생성된 네트워크 ID를 사용하여 첨부
-              networkAttachments.push({ Target: newNetwork.Id });
+              // 응답 객체에서 Id 속성이 대문자로 시작하는지 소문자로 시작하는지 확인
+              const networkId = newNetwork.Id || newNetwork.id;
+              
+              if (networkId) {
+                // 생성된 네트워크 ID를 사용하여 첨부
+                networkAttachments.push({ Target: networkId });
+                console.log(`Network created successfully with ID: ${networkId}`);
+              } else {
+                throw new Error('Network ID not found in response');
+              }
             } catch (networkError) {
               console.error(`Failed to create network ${config.newNetworkName}:`, networkError);
+              setError(`네트워크 생성 중 오류가 발생했습니다: ${networkError instanceof Error ? networkError.message : '알 수 없는 오류'}`);
             }
           }
         }
@@ -305,6 +314,13 @@ const ServiceCreate: React.FC = () => {
       setNetworkConfigs([{ id: '', useExisting: true, newNetworkName: '' }]);
       setEnvVars([{ key: '', value: '' }]);
       setPublishPorts([{ internal: '', external: '', protocol: 'tcp' }]);
+
+      if (onClose) {
+        // 약간의 지연 후 창 닫기 (알림 확인 후 닫히도록)
+        setTimeout(() => {
+          onClose();
+        }, 500);
+      }
     } catch (err) {
       console.error('Failed to create service:', err);
       setError(`서비스 생성 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
