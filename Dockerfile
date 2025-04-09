@@ -13,15 +13,14 @@ RUN npm install
 
 # 백엔드 소스 복사
 WORKDIR /app/server
-COPY ./server/ ./
+COPY ./server/package*.json ./
 RUN npm install
+COPY ./server/ ./
+
 
 WORKDIR /app/docker-canvas-front
 COPY docker-canvas-front/ .
 RUN npm run build
-
-# 프론트엔드 소스 복사
-COPY docker-canvas-front/ ./
 
 
 # 환경 변수
