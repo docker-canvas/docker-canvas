@@ -49,24 +49,25 @@ const ServiceCreate: React.FC = () => {
   
   // ServiceCreate.tsx에서 constraint 확인 함수 및 도움말을 수정
 
-    // constraint 조건 확인 함수 수정
-    const checkConstraint = () => {
+  const checkConstraint = () => {
     if (!constraint.trim()) {
       setMatchingNodes(nodes.length); // 제약 조건이 없으면 모든 노드가 대상
       return;
     }
     
     try {
-      // Docker의 실제 constraint 형식에 맞는 정규식 패턴
-      // node.role == manager, node.labels.zone == seoul 등의 형식
-      const matches = constraint.match(/node\.(role|labels\.([a-zA-Z0-9_]+))\s*(==|!=)\s*([a-zA-Z0-9_]+)/);
+      // Docker의 실제 constraint 형식에 맞는 정규식 패턴 확장
+      // node.id, node.hostname, node.role, node.platform.os, node.platform.arch, node.labels 지원
+      const matches = constraint.match(
+        /node\.(id|hostname|role|platform\.os|platform\.arch|labels\.([a-zA-Z0-9_]+))\s*(==|!=)\s*([a-zA-Z0-9_\.-]+)/
+      );
       
       if (!matches) {
-        alert('제약 조건 형식이 올바르지 않습니다. "node.role == manager" 또는 "node.labels.key == value" 형식을 사용하세요.');
+        alert('제약 조건 형식이 올바르지 않습니다. "node.속성 == 값" 또는 "node.속성 != 값" 형식을 사용하세요.');
         return;
       }
       
-      const property = matches[1]; // role 또는 labels.key
+      const property = matches[1]; // id, hostname, role, platform.os 등
       const labelKey = matches[2]; // labels인 경우 키값
       const operator = matches[3]; // == 또는 !=
       const value = matches[4];    // 비교할 값
@@ -74,18 +75,47 @@ const ServiceCreate: React.FC = () => {
       // 초기화: 빈 배열로 시작
       let filteredNodes: NodeData[] = [];
       
-      if (property === 'role') {
+      // 속성에 따라 필터링 로직 적용
+      if (property === 'id') {
+        // ID로 필터링
+        filteredNodes = nodes.filter(node => 
+          operator === '==' ? node.id === value : node.id !== value
+        );
+      } else if (property === 'hostname') {
+        // 호스트명으로 필터링
+        filteredNodes = nodes.filter(node => 
+          operator === '==' ? node.hostname === value : node.hostname !== value
+        );
+      } else if (property === 'role') {
+        // 역할로 필터링
+        filteredNodes = nodes.filter(node => 
+          operator === '==' ? node.role === value : node.role !== value
+        );
+      } else if (property === 'platform.os') {
+        // 운영체제로 필터링
         filteredNodes = nodes.filter(node => {
-          return operator === '==' ? node.role === value : node.role !== value;
+          const nodeOS = node.platform?.os;
+          return operator === '==' 
+            ? nodeOS === value 
+            : nodeOS !== value && nodeOS !== undefined;
+        });
+      } else if (property === 'platform.arch') {
+        // 아키텍처로 필터링
+        filteredNodes = nodes.filter(node => {
+          const nodeArch = node.platform?.architecture;
+          return operator === '==' 
+            ? nodeArch === value 
+            : nodeArch !== value && nodeArch !== undefined;
         });
       } else if (property.startsWith('labels.')) {
+        // 노드 라벨로 필터링
         filteredNodes = nodes.filter(node => {
           if (!node.labels) return operator === '!='; // 라벨이 없는 경우 != 연산에만 true
           
           const actualValue = node.labels[labelKey];
           return operator === '==' 
             ? actualValue === value 
-            : actualValue !== value;
+            : actualValue !== value || actualValue === undefined;
         });
       }
       

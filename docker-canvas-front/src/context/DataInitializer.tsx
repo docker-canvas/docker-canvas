@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDockerContext } from '../context/DockerContext';
 import { NodeData, NodeResources, EngineInfo, PlatformInfo, ManagerStatus } from '../components/types/node';
 import { NetworkData } from '../components/types/network';
+import { ContainerData } from '../components/types/container';
 
 const DataInitializer: React.FC = () => {
   const { synchronizeData } = useDockerContext();
@@ -92,9 +93,8 @@ const DataInitializer: React.FC = () => {
         createdAt: task.CreatedAt
       }));
       
-      // 컨테이너를 해당 노드에 할당
       nodes.forEach(node => {
-        node.containers = containers.filter(container => container.nodeId === node.id);
+        node.containers = containers.filter((container: ContainerData) => container.nodeId === node.id);
       });
       
       // 네트워크 데이터 형식 변환
