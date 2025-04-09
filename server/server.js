@@ -1,32 +1,41 @@
-// server.js
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
+const path = require('path');
+const Docker = require('dockerode');
 const app = express();
 
+// Docker 클라이언트: unix socket 사용
+const docker = new Docker({ socketPath: '/var/run/docker.sock'});
+
+// CORS 설정
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-  maxAge: 86400 // 24 hours in seconds
 }));
 
 app.use(express.json());
 
-app.use('/docker', createProxyMiddleware({
-  target: 'http://localhost:2375',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/docker': ''
-  },
-  onProxyRes: function(proxyRes) {
-    proxyRes.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000';
-    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With';
+// Docker API 직접 호출
+app.get('/docker/tasks', async (req, res) => {
+  try {
+    const tasks = await docker.listTasks();
+    res.json(tasks);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch tasks from Docker API' });
   }
-}));
+});
 
-app.listen(3001, () => {
-  console.log('Proxy server running on port 3001');
+// ✅ React 정적 파일 서빙
+app.use(express.static(path.join(__dirname, '../docker-canvas-front/build')));
+
+// ✅ SPA를 위한 fallback (React Router용)
+app.get('/{*any}', (req, res) => {
+  res.sendFile(path.join(__dirname, '../docker-canvas-front/build/index.html'));
+});
+
+app.listen(3000, '0.0.0.0', () => {
+  console.log('Proxy & frontend server running on port 3000');
 });
