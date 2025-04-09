@@ -134,7 +134,7 @@ export const sampleNodes: NodeData[] = [
   {
     id: 'node-1',
     hostname: 'swarm-manager-01',
-    role: 'Manager',
+    role: 'manager',
     status: 'ready',
     containers: getSampleContainers('node-1', 5),
     labels: {
@@ -144,7 +144,7 @@ export const sampleNodes: NodeData[] = [
   {
     id: 'node-5',
     hostname: 'swarm-manager-02',
-    role: 'Manager',
+    role: 'manager',
     status: 'ready',
     containers: getSampleContainers('node-5', 3),
     labels: {
@@ -154,7 +154,7 @@ export const sampleNodes: NodeData[] = [
   {
     id: 'node-2',
     hostname: 'swarm-worker-01',
-    role: 'Worker',
+    role: 'worker',
     status: 'ready',
     containers: getSampleContainers('node-2', 8),
     labels: {
@@ -164,7 +164,7 @@ export const sampleNodes: NodeData[] = [
   {
     id: 'node-3',
     hostname: 'swarm-worker-02',
-    role: 'Worker',
+    role: 'worker',
     status: 'down',
     containers: getSampleContainers('node-3', 3),
     labels: {

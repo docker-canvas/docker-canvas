@@ -32,7 +32,7 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
   // 노드 역할에 따른 스타일 계산
   const getRoleStyles = (role: NodeRole) => {
     // Manager는 더 진한 색상, Worker는 더 연한 색상
-    if (role === 'Manager') {
+    if (role === 'manager') {
       return {
         background: '#1E3A5F',
         borderColor: '#0F2847'
@@ -118,7 +118,7 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
         swarm-node
         p-4 rounded-lg shadow-md border-2 transition-all
         ${selected ? 'selected' : ''}
-        ${data.role === 'Manager' ? 'manager' : 'worker'}
+        ${data.role === 'manager' ? 'manager' : 'worker'}
       `}
       style={{
         height: `${nodeHeight}px`,

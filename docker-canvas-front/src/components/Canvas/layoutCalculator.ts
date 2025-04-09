@@ -35,6 +35,50 @@ const findNetworkByName = (networks: NetworkData[], networkName: string): Networ
 };
 
 /**
+ * 노드 정렬 함수
+ * 1. leader가 true인 것이 우선
+ * 2. role이 manager인 것 우선
+ * 3. 그 외에는 node name을 기준으로 정렬
+ * 
+ * @param nodes 정렬할 노드 배열
+ * @returns 정렬된 노드 배열
+ */
+const sortNodes = (nodes: NodeData[]): NodeData[] => {
+  return [...nodes].sort((a, b) => {
+    // 1. leader가 true인 것이 우선
+    const aIsLeader = a.labels && (a.labels as any)['node.leader'] === 'true';
+    const bIsLeader = b.labels && (b.labels as any)['node.leader'] === 'true';
+    
+    if (aIsLeader && !bIsLeader) return -1;
+    if (!aIsLeader && bIsLeader) return 1;
+    
+    // 2. role이 manager인 것 우선
+    if (a.role === 'manager' && b.role !== 'manager') return -1;
+    if (a.role !== 'manager' && b.role === 'manager') return 1;
+    
+    // 3. 그 외에는 node name을 기준으로 정렬
+    return a.hostname.localeCompare(b.hostname);
+  });
+};
+
+/**
+ * 컨테이너 정렬 함수
+ * - running 중인 것 우선
+ * 
+ * @param containers 정렬할 컨테이너 배열
+ * @returns 정렬된 컨테이너 배열
+ */
+const sortContainers = (containers: ContainerData[]): ContainerData[] => {
+  return [...containers].sort((a, b) => {
+    // running 중인 것 우선
+    if (a.status === 'running' && b.status !== 'running') return -1;
+    if (a.status !== 'running' && b.status === 'running') return 1;
+    
+    return 0;
+  });
+};
+
+/**
  * 노드, 컨테이너, 네트워크 배치 계산 함수
  * 
  * @param nodeData Docker Swarm 노드 데이터 배열
@@ -71,8 +115,15 @@ export const calculateLayout = (
     }
   };
   
+  // 노드 정렬 적용
+  const sortedNodes = sortNodes(nodeData);
+  
   // 1. 각 노드와 해당 노드의 컨테이너 너비 계산
-  nodeData.forEach((node, index) => {
+  sortedNodes.forEach((node, index) => {
+    // 컨테이너 정렬 적용 (실행 중인 컨테이너 우선)
+    const sortedContainers = sortContainers(node.containers);
+    node.containers = sortedContainers;
+    
     const containersWidth = node.containers.length * layoutConfig.containerWidth + 
                           (node.containers.length - 1) * layoutConfig.containerGap;
     const nodeWidth = Math.max(layoutConfig.nodeMinWidth, containersWidth);
@@ -85,7 +136,7 @@ export const calculateLayout = (
     
     layoutInfo.currentX += nodeWidth + layoutConfig.horizontalGap;
     
-    if (index === nodeData.length - 1) {
+    if (index === sortedNodes.length - 1) {
       layoutInfo.totalWidth = nodeX + nodeWidth - layoutConfig.startX;
     }
   });
@@ -116,7 +167,7 @@ export const calculateLayout = (
   
   
   // 3. 컨테이너 배치 및 핸들 위치 계산
-  nodeData.forEach((node) => {
+  sortedNodes.forEach((node) => {
     const nodeX = layoutInfo.nodePositions[node.id].x;
     const nodeWidth = layoutInfo.nodeWidths[node.id];
     
@@ -209,20 +260,28 @@ export const calculateLayout = (
   
   // 4. Overlay 네트워크 배치
   // 실제 배치할 네트워크 필터링 및 정렬
-  const networksToPlace = [...overlayNetworks].sort((a, b) => {
-    // Ingress 네트워크가 컨테이너와 가장 가까운 곳에 배치되도록 함
-    if (a.name === 'ingress') return 1;
-    if (b.name === 'ingress') return -1;
+  const networksToPlace = [...overlayNetworks]
+    // 연결된 컨테이너가 없는 네트워크는 제외
+    .filter(network => {
+      const networkId = network.id;
+      const connections = overlayNetworkContainers[networkId]?.length || 0;
+      return connections > 0 || network.name === 'ingress'; // ingress는 항상 포함
+    })
+    // 정렬 적용
+    .sort((a, b) => {
+      // Ingress 네트워크가 컨테이너와 가장 가까운 곳에 배치되도록 함
+      if (a.name === 'ingress') return 1;
+      if (b.name === 'ingress') return -1;
 
-    const aId = a.id;
-    const bId = b.id;
-    
-    // 연결된 컨테이너가 있는 네트워크 우선 배치
-    const aConnections = overlayNetworkContainers[aId]?.length || 0;
-    const bConnections = overlayNetworkContainers[bId]?.length || 0;
-    
-    return bConnections - aConnections;
-  });
+      const aId = a.id;
+      const bId = b.id;
+      
+      // 연결된 컨테이너가 있는 네트워크 우선 배치
+      const aConnections = overlayNetworkContainers[aId]?.length || 0;
+      const bConnections = overlayNetworkContainers[bId]?.length || 0;
+      
+      return bConnections - aConnections;
+    });
     
   // Overlay 네트워크 배치
   networksToPlace.forEach((network, index) => {
@@ -258,8 +317,8 @@ export const calculateLayout = (
     n.driver === 'bridge' || n.name == 'docker_gwbridge'
   );
 
-  for (let i = 0; i < nodeData.length; i++) {
-    const nodeId = nodeData[i].id;
+  for (let i = 0; i < sortedNodes.length; i++) {
+    const nodeId = sortedNodes[i].id;
     const nodeX = layoutInfo.nodePositions[nodeId].x;
     const nodeWidth = layoutInfo.nodeWidths[nodeId];
     
@@ -301,7 +360,7 @@ export const calculateLayout = (
   }
   
   // 6. 노드 배치
-  nodeData.forEach((node) => {
+  sortedNodes.forEach((node) => {
     const nodeWidth = layoutInfo.nodeWidths[node.id];
     const nodeX = layoutInfo.nodePositions[node.id].x;
     

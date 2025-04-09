@@ -8,7 +8,7 @@
 import { ContainerData } from './container';
 
 // 노드의 역할 타입 정의 (Manager 또는 Worker)
-export type NodeRole = 'Manager' | 'Worker';
+export type NodeRole = 'manager' | 'worker';
 
 
 // 노드 데이터 인터페이스 정의
@@ -18,9 +18,10 @@ export interface NodeData {
   role: NodeRole;                     // 역할 (Manager/Worker)
   status?: 'ready' | 'down' | 'disconnected'; // 노드 상태 (선택적)
   containers: ContainerData[];        // 컨테이너 목록 (이전의 containerCount 대체)
-  labels?: object;    // 노드 라벨 (선택적)
+  labels?: object;                    // 노드 라벨 (선택적)
   createdAt?: string;                 // 생성 일시 (선택적)
   updatedAt?: string;                 // 업데이트 일시 (선택적)
+  leader?: boolean;                   // 리더 노드 여부 (선택적)
 }
 
 // Node 위치 및 크기 정보를 정의하는 인터페이스

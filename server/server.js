@@ -39,6 +39,18 @@ app.get('/docker/networks', async (req, res) => {
   }
 });
 
+// 네트워크 생성 (/docker/networks/create)
+app.post('/docker/networks/create', async (req, res) => {
+  try {
+    const networkConfig = req.body;
+    const network = await docker.createNetwork(networkConfig);
+    res.status(201).json(network);
+  } catch (error) {
+    console.error('Error creating network:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 3. 태스크(컨테이너) 정보 가져오기 (/docker/tasks)
 app.get('/docker/tasks', async (req, res) => {
   try {

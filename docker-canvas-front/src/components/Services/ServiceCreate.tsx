@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDockerContext } from '../../context/DockerContext';
 import { createService } from '../data/api_services';
+import { createNetwork } from '../data/api_networks';
 
 /**
  * 서비스 생성 컴포넌트
@@ -46,7 +47,7 @@ const ServiceCreate: React.FC = () => {
   const [matchingNodes, setMatchingNodes] = useState<number | null>(null);
   
   // 제약 조건 확인 함수
-const checkConstraint = () => {
+    const checkConstraint = () => {
     if (!constraint.trim()) {
       setMatchingNodes(nodes.length); // 제약 조건이 없으면 모든 노드가 대상
       return;
@@ -167,72 +168,84 @@ const checkConstraint = () => {
   };
   
   // 서비스 생성 함수
-  // 서비스 생성 함수 수정
-  const createServiceHandler = async () => {
-    // 필수 입력 확인
+    const createServiceHandler = async () => {
+    // 필수 입력 확인 - 이 부분은 그대로 유지
     if (!image.trim()) {
       alert('이미지를 입력하세요.');
       return;
     }
-
+  
     if (!serviceName.trim()) {
       alert('서비스 이름을 입력하세요.');
       return;
     }
     
-    // 네트워크 구성 처리
-    const networkAttachments = networkConfigs
-      .filter(config => config.useExisting ? config.id : config.newNetworkName.trim())
-      .map(config => {
-        if (config.useExisting) {
-          return { Target: config.id };
-        } else {
-          // 새 네트워크 생성은 별도 로직으로 처리해야 함
-          return { Target: config.newNetworkName.trim() };
-        }
-      });
-    
-    // 환경 변수 처리
-    const environment = envVars
-      .filter(env => env.key.trim() && env.value.trim())
-      .map(env => `${env.key}=${env.value}`);
-    
-    // 서비스 생성 API 호출 준비
-    const serviceConfig = {
-      Name: serviceName,
-      TaskTemplate: {
-        ContainerSpec: {
-          Image: image,
-          Env: environment.length > 0 ? environment : undefined
-        },
-        Placement: {
-          Constraints: constraint ? [constraint] : undefined
-        }
-      },
-      Mode: {
-        [serviceMode]: serviceMode === 'replicated' ? { Replicas: replicas } : {}
-      },
-      Networks: networkAttachments.length > 0 ? networkAttachments : undefined,
-      EndpointSpec: {
-        Ports: publishPorts
-          .filter(port => port.internal && port.external)
-          .map(port => ({
-            Protocol: port.protocol,
-            TargetPort: parseInt(port.internal),
-            PublishedPort: parseInt(port.external),
-            PublishMode: publishMode
-          }))
-      }
-    };
-    
-    console.log('Service configuration:', serviceConfig);
-    
-    // 실제 API 호출 구현
     setLoading(true);
     setError(null);
     setSuccess(false);
     
     try {
+      // 네트워크 설정 처리 - 새 네트워크 생성이 필요한 경우 처리
+      const networkAttachments = [];
+      
+      // 네트워크 설정 순회
+      for (const config of networkConfigs) {
+        if (config.useExisting) {
+          // 기존 네트워크 사용
+          if (config.id) {
+            networkAttachments.push({ Target: config.id });
+          }
+        } else {
+          // 새 네트워크 생성
+          if (config.newNetworkName.trim()) {
+            try {
+              const newNetwork = await createNetwork(config.newNetworkName.trim());
+              
+              // 생성된 네트워크 ID를 사용하여 첨부
+              networkAttachments.push({ Target: newNetwork.Id });
+            } catch (networkError) {
+              console.error(`Failed to create network ${config.newNetworkName}:`, networkError);
+            }
+          }
+        }
+      }
+      
+      // 환경 변수 처리 - 이 부분은 그대로 유지
+      const environment = envVars
+        .filter(env => env.key.trim() && env.value.trim())
+        .map(env => `${env.key}=${env.value}`);
+      
+      // 서비스 설정 객체 생성
+      const serviceConfig = {
+        Name: serviceName,
+        TaskTemplate: {
+          ContainerSpec: {
+            Image: image,
+            Env: environment.length > 0 ? environment : undefined
+          },
+          Placement: {
+            Constraints: constraint ? [constraint] : undefined
+          }
+        },
+        Mode: {
+          [serviceMode]: serviceMode === 'replicated' ? { Replicas: replicas } : {}
+        },
+        Networks: networkAttachments.length > 0 ? networkAttachments : undefined,
+        EndpointSpec: {
+          Ports: publishPorts
+            .filter(port => port.internal && port.external)
+            .map(port => ({
+              Protocol: port.protocol,
+              TargetPort: parseInt(port.internal),
+              PublishedPort: parseInt(port.external),
+              PublishMode: publishMode
+            }))
+        }
+      };
+      
+      console.log('Service configuration:', serviceConfig);
+      
+      // 서비스 생성 API 호출
       const response = await createService(serviceConfig);
       console.log('Service created successfully:', response);
       setSuccess(true);
@@ -247,8 +260,6 @@ const checkConstraint = () => {
       setNetworkConfigs([{ id: '', useExisting: true, newNetworkName: '' }]);
       setEnvVars([{ key: '', value: '' }]);
       setPublishPorts([{ internal: '', external: '', protocol: 'tcp' }]);
-      
-
     } catch (err) {
       console.error('Failed to create service:', err);
       setError(`서비스 생성 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
