@@ -40,7 +40,7 @@ const ServiceCreate: React.FC = () => {
   const [matchingNodes, setMatchingNodes] = useState<number | null>(null);
   
   // 제약 조건 확인 함수
-  const checkConstraint = () => {
+const checkConstraint = () => {
     if (!constraint.trim()) {
       setMatchingNodes(nodes.length); // 제약 조건이 없으면 모든 노드가 대상
       return;
@@ -63,9 +63,13 @@ const ServiceCreate: React.FC = () => {
         key = matches[2];
         value = matches[3];
         
-        // 라벨 조건에 맞는 노드 찾기
+        // 라벨 조건에 맞는 노드 찾기 - object 타입으로 안전하게 접근
         const filtered = nodes.filter(node => 
-          node.labels && node.labels[key] === value
+          node.labels && 
+          typeof node.labels === 'object' && 
+          node.labels !== null && 
+          (key in node.labels) && 
+          (node.labels as any)[key] === value
         );
         setMatchingNodes(filtered.length);
       } else {

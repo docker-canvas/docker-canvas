@@ -73,44 +73,49 @@ export interface EnvVarConfig {
  * @returns 일치하는 노드 수 또는 오류인 경우 null
  */
 export function checkConstraint(constraint: string, nodes: NodeData[]): number | null {
-  if (!constraint.trim()) {
-    return nodes.length; // 제약 조건이 없으면 모든 노드가 대상
-  }
-  
-  try {
-    // 간단한 형식 체크 (node.labels.key==value 또는 node.role==manager)
-    const matches = constraint.match(/node\.(labels\.([a-zA-Z0-9_]+)|role)==([a-zA-Z0-9_]+)/);
+    if (!constraint.trim()) {
+      return nodes.length; // 제약 조건이 없으면 모든 노드가 대상
+    }
     
-    if (!matches) {
-      console.error('제약 조건 형식이 올바르지 않습니다.');
+    try {
+      // 간단한 형식 체크 (node.labels.key==value 또는 node.role==manager)
+      const matches = constraint.match(/node\.(labels\.([a-zA-Z0-9_]+)|role)==([a-zA-Z0-9_]+)/);
+      
+      if (!matches) {
+        console.error('제약 조건 형식이 올바르지 않습니다.');
+        return null;
+      }
+      
+      const type = matches[1].startsWith('labels.') ? 'labels' : 'role';
+      
+      if (type === 'labels') {
+        const key = matches[2];
+        const value = matches[3];
+        
+        // 라벨 조건에 맞는 노드 찾기
+        // object 타입으로 변경됨에 따라 안전하게 접근하도록 수정
+        const filtered = nodes.filter(node => 
+          node.labels && 
+          typeof node.labels === 'object' && 
+          node.labels !== null && 
+          (key in node.labels) && 
+          (node.labels as any)[key] === value
+        );
+        return filtered.length;
+      } else {
+        const value = matches[3];
+        
+        // 역할 조건에 맞는 노드 찾기
+        const filtered = nodes.filter(node => 
+          node.role.toLowerCase() === value.toLowerCase()
+        );
+        return filtered.length;
+      }
+    } catch (error) {
+      console.error('Constraint parsing error:', error);
       return null;
     }
-    
-    const type = matches[1].startsWith('labels.') ? 'labels' : 'role';
-    
-    if (type === 'labels') {
-      const key = matches[2];
-      const value = matches[3];
-      
-      // 라벨 조건에 맞는 노드 찾기
-      const filtered = nodes.filter(node => 
-        node.labels && node.labels[key] === value
-      );
-      return filtered.length;
-    } else {
-      const value = matches[3];
-      
-      // 역할 조건에 맞는 노드 찾기
-      const filtered = nodes.filter(node => 
-        node.role.toLowerCase() === value.toLowerCase()
-      );
-      return filtered.length;
-    }
-  } catch (error) {
-    console.error('Constraint parsing error:', error);
-    return null;
   }
-}
 
 /**
  * 유효한 서비스 구성 객체를 생성하는 함수
