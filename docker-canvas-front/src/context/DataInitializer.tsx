@@ -79,7 +79,7 @@ const DataInitializer: React.FC = () => {
       
       // 컨테이너 데이터 처리 및 노드에 할당
       const containers = tasksData
-      .filter((task: any) => task.Status.State !== 'shutdown')
+      .filter((task: any) => task.Status.State !== 'shutdown' && task.Status.State !== 'failed')
       .map((task: any) => ({
         id: task.ID,
         nodeId: task.NodeID,

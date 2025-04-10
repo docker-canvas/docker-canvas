@@ -49,11 +49,12 @@ const SwarmEdge: React.FC<EdgeProps> = ({
     targetY
   });
 
+  
   // 엣지 타입에 따른 스타일 계산
   const getEdgeStyle = () => {
-    // 기본 타입 (default) - 회색 실선
+    // 기본 타입 (default) - 검정/회색 실선 (컨테이너-오버레이 연결용)
     let edgeStyle = {
-      stroke: '#555',
+      stroke: '#333', // 좀 더 진한 검정에 가까운 색상으로 변경
       strokeWidth: 2,
       ...style,
     };
@@ -61,7 +62,7 @@ const SwarmEdge: React.FC<EdgeProps> = ({
     // 타입별 스타일 적용
     switch (data?.edgeType) {
       case 'vxlan':
-        // VXLAN 타입 - 붉은색 점선
+        // VXLAN 타입 - 붉은색 점선 (노드-오버레이 연결용)
         edgeStyle = {
           ...edgeStyle,
           stroke: '#E53E3E', // 붉은색
@@ -69,8 +70,16 @@ const SwarmEdge: React.FC<EdgeProps> = ({
         };
         break;
       
+      case 'ingress':
+        // Ingress 타입 - 주황색 실선 (GWBridge-오버레이 연결용)
+        edgeStyle = {
+          ...edgeStyle,
+          stroke: '#ED8936', // 주황색
+        };
+        break;
+      
       default:
-        // 기본 타입 - 회색 실선 유지
+        // 기본 타입 - 검정/회색 실선 유지 (컨테이너-오버레이 연결용)
         break;
     }
     
@@ -81,6 +90,8 @@ const SwarmEdge: React.FC<EdgeProps> = ({
       // 타입별로 다른 강조 색상 적용
       if (data?.edgeType === 'vxlan') {
         edgeStyle.stroke = '#C53030'; // 더 진한 붉은색
+      } else if (data?.edgeType === 'ingress') {
+        edgeStyle.stroke = '#C05621'; // 더 진한 주황색
       } else {
         edgeStyle.stroke = '#000'; // 기본 타입은 검은색으로 강조
       }
@@ -88,6 +99,7 @@ const SwarmEdge: React.FC<EdgeProps> = ({
     
     return edgeStyle;
   };
+
 
   // 호버 효과를 위한 상태
   const [isHovered, setIsHovered] = React.useState(false);

@@ -118,7 +118,7 @@ export const calculateEdges = (
             targetHandle: targetHandleId,
             type: 'swarmEdge',
             data: {
-              edgeType: 'ingress' as SwarmEdgeType,
+              edgeType: 'default' as SwarmEdgeType,
             }
           });
         });
@@ -152,38 +152,40 @@ export const calculateEdges = (
       });
     }
 
-    // 규칙 5: 노드와 Overlay 네트워크 연결
-    overlayNetworks.forEach(overlayNetwork => {
-      // overlayNetwork.data.nodeHandles 사용
-      if (overlayNetwork.data.nodeHandles && overlayNetwork.data.nodeHandles.length > 0) {
-        overlayNetwork.data.nodeHandles.forEach((handleInfo:any) => {
-          const nodeId = handleInfo.nodeId;
-          const nodeElement = swarmNodeElements.find(node => node.id === nodeId);
+    
+  // 규칙 5: 노드와 Overlay 네트워크 연결
+  overlayNetworks.forEach(overlayNetwork => {
+    // overlayNetwork.data.nodeHandles 사용
+    if (overlayNetwork.data.nodeHandles && overlayNetwork.data.nodeHandles.length > 0) {
+      overlayNetwork.data.nodeHandles.forEach((handleInfo:any) => {
+        const nodeId = handleInfo.nodeId;
+        const nodeElement = swarmNodeElements.find(node => node.id === nodeId);
+        
+        if (nodeElement && nodeElement.data.overlayHandles) {
+          // 해당 오버레이 네트워크에 대한 노드 핸들 찾기
+          const matchingHandle = nodeElement.data.overlayHandles.find(
+            (h:any) => h.networkId === overlayNetwork.id
+          );
           
-          if (nodeElement && nodeElement.data.overlayHandles) {
-            // 해당 오버레이 네트워크에 대한 노드 핸들 찾기
-            const matchingHandle = nodeElement.data.overlayHandles.find(
-              (h:any) => h.networkId === overlayNetwork.id
-            );
-            
-            if (matchingHandle) {
-              // 노드와 오버레이 네트워크 간 엣지 생성
-              edges.push({
-                id: `edge-${nodeId}-to-${overlayNetwork.id}`,
-                source: nodeId,
-                target: overlayNetwork.id,
-                sourceHandle: `overlay-out-${overlayNetwork.id}`,  // 노드의 해당 오버레이 네트워크용 핸들
-                targetHandle: `node-in-${nodeId}`,  // 오버레이 네트워크의 해당 노드용 핸들
-                type: 'swarmEdge',
-                data: {
-                  edgeType: 'default' as SwarmEdgeType
-                }
-              });
-            }
+          if (matchingHandle) {
+            // 노드와 오버레이 네트워크 간 엣지 생성 - 항상 VXLAN으로 설정
+            edges.push({
+              id: `edge-${nodeId}-to-${overlayNetwork.id}`,
+              source: nodeId,
+              target: overlayNetwork.id,
+              sourceHandle: `overlay-out-${overlayNetwork.id}`,  // 노드의 해당 오버레이 네트워크용 핸들
+              targetHandle: `node-in-${nodeId}`,  // 오버레이 네트워크의 해당 노드용 핸들
+              type: 'swarmEdge',
+              data: {
+                edgeType: 'vxlan' as SwarmEdgeType,
+                label: 'VXLAN' // 노드-오버레이 연결은 항상 VXLAN 라벨 표시
+              }
+            });
           }
-        });
-      }
-    });
-  
+        }
+      });
+    }
+  });
+
     return edges;
   };
