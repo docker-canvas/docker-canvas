@@ -10,7 +10,7 @@ export const layoutConfig = {
     // 컴포넌트 크기 설정
     containerWidth: 120,        // 컨테이너 너비
     containerHeight: 80,        // 컨테이너 높이 (Container.tsx에도 동일한 값 설정 필요)
-    nodeMinWidth: 400,          // 노드 최소 너비
+    nodeMinWidth: 380,          // 노드 최소 너비
     nodeHeight: 400,            // 노드 높이
     externalNetworkHeight: 40,  // External 네트워크 높이
     ingressNetworkHeight: 40,   // Ingress 네트워크 높이

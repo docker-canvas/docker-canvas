@@ -78,21 +78,21 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
     if (data.driver === 'bridge' || data.name.includes('gwbridge')) {
       // 컨테이너 핸들 정보가 있는 경우 해당 위치에 개별 핸들 생성
       if (data.containerHandles && data.containerHandles.length > 0) {
-        // 상단 핸들들 (각 컨테이너에 대응)
-        const topHandles = data.containerHandles.map((handleInfo, index) => (
-          <Handle
-            key={`container-handle-${index}`}
-            type="target"
-            position={Position.Top}
-            id={`handle-${handleInfo.containerId}`}
-            style={{ 
-              background: '#63B3ED', 
-              width: '8px', 
-              height: '8px',
-              left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
-            }}
-          />
-        ));
+        // // 상단 핸들들 (각 컨테이너에 대응)
+        // const topHandles = data.containerHandles.map((handleInfo, index) => (
+        //   <Handle
+        //     key={`container-handle-${index}`}
+        //     type="target"
+        //     position={Position.Top}
+        //     id={`handle-${handleInfo.containerId}`}
+        //     style={{ 
+        //       background: '#63B3ED', 
+        //       width: '8px', 
+        //       height: '8px',
+        //       left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+        //     }}
+        //   />
+        // ));
         
         // 하단 핸들 추가 (Node와 연결용)
         const bottomHandle = (
@@ -110,7 +110,8 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
           />
         );
         
-        return [...topHandles, bottomHandle];
+        // return [...topHandles, bottomHandle];
+        return [bottomHandle];
       }
       
       // 기본 핸들 (컨테이너 핸들 정보가 없는 경우에도 Node 연결용 핸들 추가)

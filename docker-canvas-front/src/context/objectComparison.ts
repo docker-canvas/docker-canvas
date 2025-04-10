@@ -202,10 +202,5 @@ export function areNetworksEqual(network1: NetworkData, network2: NetworkData): 
     return false;
   }
   
-  // 컨테이너 핸들 비교
-  if (!deepEqual(network1.containerHandles, network2.containerHandles)) {
-    return false;
-  }
-  
   return true;
 }

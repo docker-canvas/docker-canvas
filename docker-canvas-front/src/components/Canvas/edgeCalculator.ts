@@ -92,32 +92,32 @@ export const calculateEdges = (
     
     // 규칙 2: 컨테이너는 GWBridge 네트워크와 연결
     // VXLAN 타입이므로 라벨 유지
-    containerElements.forEach(container => {
-      const containerInfo = layoutInfo.containerToGWBridge[container.id];
-      if (!containerInfo) return;
+    // containerElements.forEach(container => {
+    //   const containerInfo = layoutInfo.containerToGWBridge[container.id];
+    //   if (!containerInfo) return;
       
-      const matchingGWBridge = gwbridgeNetworks.find(network => 
-        network.id === containerInfo.gwbridgeId || 
-        (network.id.includes('gwbridge') && network.id.includes(containerInfo.gwbridgeId.split('-').slice(-1)[0]))
-      );
+    //   const matchingGWBridge = gwbridgeNetworks.find(network => 
+    //     network.id === containerInfo.gwbridgeId || 
+    //     (network.id.includes('gwbridge') && network.id.includes(containerInfo.gwbridgeId.split('-').slice(-1)[0]))
+    //   );
       
-      if (matchingGWBridge) {
-        const targetHandleId = `handle-${container.id}`;
+    //   if (matchingGWBridge) {
+    //     const targetHandleId = `handle-${container.id}`;
         
-        edges.push({
-          id: `edge-${container.id}-to-${matchingGWBridge.id}`,
-          source: container.id,
-          target: matchingGWBridge.id,
-          sourceHandle: 'gwbridge-out',
-          targetHandle: targetHandleId,
-          type: 'swarmEdge',
-          data: {
-            edgeType: 'vxlan' as SwarmEdgeType,
-            label: 'VXLAN' // VXLAN 라벨 유지
-          }
-        });
-      }
-    });
+    //     edges.push({
+    //       id: `edge-${container.id}-to-${matchingGWBridge.id}`,
+    //       source: container.id,
+    //       target: matchingGWBridge.id,
+    //       sourceHandle: 'gwbridge-out',
+    //       targetHandle: targetHandleId,
+    //       type: 'swarmEdge',
+    //       data: {
+    //         edgeType: 'vxlan' as SwarmEdgeType,
+    //         label: 'VXLAN' // VXLAN 라벨 유지
+    //       }
+    //     });
+    //   }
+    // });
     
     // 규칙 3: 컨테이너는 Overlay 네트워크와 연결
     // VXLAN이 아니므로 라벨 제거

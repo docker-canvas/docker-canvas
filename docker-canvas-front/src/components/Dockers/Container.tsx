@@ -89,25 +89,6 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
     });
   };
   
-  // 하단 핸들 (Bridge/GWBridge 연결용)
-  const renderBottomHandles = () => {
-    // 항상 중앙에 핸들 하나 제공
-    return (
-      <Handle
-        key="gwbridge-out"
-        type="source"
-        position={Position.Bottom}
-        id="gwbridge-out"
-        style={{ 
-          background: '#4299E1', 
-          width: '8px', 
-          height: '8px',
-          left: '50%'  // 중앙에 위치
-        }}
-      />
-    );
-  };
-
   // 호버 UI를 body에 직접 추가하는 코드
   React.useEffect(() => {
     // 호버 상태가 아니면 아무것도 하지 않음
@@ -194,7 +175,6 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
     >
       {/* 네트워크 연결을 위한 핸들 */}
       {renderTopHandles()}
-      {renderBottomHandles()}
 
       {/* 컴포넌트 타입 표시와 상태 표시 (오른쪽에 통합) */}
       <div className="absolute bottom-1 right-1 text-xs bg-gray-800 bg-opacity-80 px-2 py-1 rounded-md flex items-center" style={{ fontSize: '0.7rem' }}>
