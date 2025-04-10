@@ -76,46 +76,10 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
   const renderHandles = () => {
     // GWBridge 네트워크인 경우
     if (data.driver === 'bridge' || data.name.includes('gwbridge')) {
-      // 컨테이너 핸들 정보가 있는 경우 해당 위치에 개별 핸들 생성
-      if (data.containerHandles && data.containerHandles.length > 0) {
-        // // 상단 핸들들 (각 컨테이너에 대응)
-        // const topHandles = data.containerHandles.map((handleInfo, index) => (
-        //   <Handle
-        //     key={`container-handle-${index}`}
-        //     type="target"
-        //     position={Position.Top}
-        //     id={`handle-${handleInfo.containerId}`}
-        //     style={{ 
-        //       background: '#63B3ED', 
-        //       width: '8px', 
-        //       height: '8px',
-        //       left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
-        //     }}
-        //   />
-        // ));
-        
-        // 하단 핸들 추가 (Node와 연결용)
-        const bottomHandle = (
-          <Handle
-            key="gwbridge-in"
-            type="target"  // 타입을 target으로 변경 - Node에서 오는 연결을 받음
-            position={Position.Bottom}
-            id="gwbridge-in"  // ID를 gwbridge-in으로 설정
-            style={{ 
-              background: '#63B3ED', 
-              width: '8px', 
-              height: '8px',
-              left: '50%' 
-            }}
-          />
-        );
-        
-        // return [...topHandles, bottomHandle];
-        return [bottomHandle];
-      }
+      const handles = [];
       
-      // 기본 핸들 (컨테이너 핸들 정보가 없는 경우에도 Node 연결용 핸들 추가)
-      return [
+      // 하단 핸들 추가 (Node와 연결용)
+      handles.push(
         <Handle
           key="gwbridge-in"
           type="target"
@@ -128,31 +92,77 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
             left: '50%' 
           }}
         />
-      ];
+      );
+      
+      // IngressToGwbridgeHandleInfo가 있는 경우 ingress 연결용 핸들 추가
+      if (data.ingressToGwbridgeHandles) {
+        handles.push(
+          <Handle
+            key="ingress-out"
+            type="source"
+            position={Position.Top}
+            id="ingress-out"
+            style={{ 
+              background: '#ED8936', // ingress 색상과 맞춤
+              width: '8px', 
+              height: '8px',
+              left: `${data.ingressToGwbridgeHandles[0].xPosition * 100}%`, // 상대적 위치를 백분율로 변환
+              cursor: 'pointer'
+            }}
+          />
+        );
+      }
+      
+      return handles;
     }
     
     // Overlay 네트워크인 경우
     if (data.driver === 'overlay') {
-      // 연결된 컨테이너 핸들 정보가 있는 경우
-      if (data.containerHandles && data.containerHandles.length > 0) {
-        return data.containerHandles.map((handleInfo, index) => (
-          <Handle
-            key={`container-handle-${index}`}
-            type="source"
-            position={Position.Bottom}
-            id={`overlay-out-${handleInfo.containerId}`}
-            style={{ 
-              background: '#4FD1C5', 
-              width: '8px', 
-              height: '8px',
-              left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
-            }}
-          />
-        ));
+      const handles:any = [];
+      
+      // Ingress 네트워크인 경우 gwbridge 연결용 핸들 추가
+      if (data.name === 'ingress' && data.ingressToGwbridgeHandles && data.ingressToGwbridgeHandles.length > 0) {
+        // 각 gwbridge와 연결될 핸들 추가 - 이미 상대적 위치로 계산됨
+        data.ingressToGwbridgeHandles.forEach((handle, idx) => {
+          handles.push(
+            <Handle
+              key={`gwbridge-handle-${idx}`}
+              type="target"
+              position={Position.Bottom}
+              id={`gwbridge-in-${handle.networkId}`}
+              style={{ 
+                background: '#4299E1', // gwbridge 색상과 맞춤
+                width: '8px', 
+                height: '8px',
+                left: `${handle.xPosition * 100}%`, // 상대적 위치를 백분율로 변환
+                cursor: 'pointer'
+              }}
+            />
+          );
+        });
       }
       
-      // 기본 핸들 (정보가 없는 경우) - 중앙에 하나
-      return null;
+      // 연결된 컨테이너 핸들 정보가 있는 경우
+      if (data.containerHandles && data.containerHandles.length > 0) {
+        data.containerHandles.forEach((handleInfo, index) => {
+          handles.push(
+            <Handle
+              key={`container-handle-${index}`}
+              type="source"
+              position={Position.Bottom}
+              id={`overlay-out-${handleInfo.containerId}`}
+              style={{ 
+                background: '#4FD1C5', 
+                width: '8px', 
+                height: '8px',
+                left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+              }}
+            />
+          );
+        });
+      }
+      
+      return handles;
     }
     
     // 기본 핸들 (일반 네트워크)

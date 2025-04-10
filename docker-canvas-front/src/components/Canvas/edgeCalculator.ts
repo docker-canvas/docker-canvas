@@ -157,5 +157,35 @@ export const calculateEdges = (
       });
     }
     
+    // gwbridge와 ingress 네트워크 간 엣지 생성 로직
+
+    // 규칙 4: GWBridge와 Ingress 네트워크 연결
+    // 이 규칙은 기존 규칙 후에 추가
+    const ingressNetwork = layoutedNodes.find(
+      node => node.type === 'networkNode' && node.data.name === 'ingress'
+    );
+
+    if (ingressNetwork && ingressNetwork.data.ingressToGwbridgeHandles) {
+      ingressNetwork.data.ingressToGwbridgeHandles.forEach((handle : any) => {
+        const gwbridge = gwbridgeNetworks.find(net => net.id === handle.networkId);
+        
+        if (gwbridge && gwbridge.data.ingressToGwbridgeHandle) {
+          edges.push({
+            id: `edge-${gwbridge.id}-to-${ingressNetwork.id}`,
+            source: gwbridge.id,
+            target: ingressNetwork.id,
+            sourceHandle: 'ingress-out',    // GWBridge 네트워크의 상단 핸들
+            targetHandle: `gwbridge-in-${handle.networkId}`,  // Ingress 네트워크의 하단 핸들
+            type: 'swarmEdge',
+            data: {
+              edgeType: 'ingress' as SwarmEdgeType,
+              label: 'Ingress'
+            }
+          });
+        }
+      });
+    }
     return edges;
   };
+
+  

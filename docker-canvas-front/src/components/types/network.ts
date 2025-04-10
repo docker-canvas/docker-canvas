@@ -20,7 +20,7 @@ export interface NetworkInfo {
 // 컨테이너 핸들 연결 정보 (위치 정보 포함)
 export interface IngressToGwbridgeHandleInfo {
   networkId: string;   // 연결된 컨테이너 ID
-  xPosition: number;     // 핸들 X 좌표의 상대적 위치 (0~1 사이 값)
+  xPosition: number;    // 핸들 X의 절대적 좌표 위치 
 }
 
 // 컨테이너 핸들 연결 정보 (위치 정보 포함)
@@ -41,7 +41,7 @@ export interface NetworkData {
   labels?: object;  // 네트워크 라벨
   createdAt?: string;               // 생성 일시
   containerHandles?: ContainerHandleInfo[];  // 컨테이너 핸들 정보 - 레이아웃 계산기에서 설정
-  ingressToGwbridgeHandle?: IngressToGwbridgeHandleInfo;
+  ingressToGwbridgeHandles?: IngressToGwbridgeHandleInfo[];
 }
 
 // 네트워크 위치 및 크기 정보를 정의하는 인터페이스

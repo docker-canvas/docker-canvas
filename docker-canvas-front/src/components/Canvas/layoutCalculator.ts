@@ -8,7 +8,7 @@
 import { Node } from 'reactflow';
 import { NodeData } from '../types/node';
 import { ContainerData, ContainerNetwork } from '../types/container';
-import { NetworkData, ContainerHandleInfo } from '../types/network';
+import { NetworkData, ContainerHandleInfo, IngressToGwbridgeHandleInfo } from '../types/network';
 import { layoutConfig } from './layoutConfig';
 import { NodeLayoutInfo } from '../types/layoutTypes';
 
@@ -126,7 +126,8 @@ export const calculateLayout = (
     
     const containersWidth = node.containers.length * layoutConfig.containerWidth + 
                           (node.containers.length - 1) * layoutConfig.containerGap;
-    const nodeWidth = Math.max(layoutConfig.nodeMinWidth, containersWidth);
+    // 노드 너비 계산 시 추가 공간 20px 확보 (컨테이너 배치 후 여유 공간)
+    const nodeWidth = Math.max(layoutConfig.nodeMinWidth, containersWidth) + 20;
     
     layoutInfo.nodeWidths[node.id] = nodeWidth;
     
@@ -258,6 +259,18 @@ export const calculateLayout = (
   layoutInfo.containerToOverlay = containerToOverlay;
   layoutInfo.overlayNetworkContainers = overlayNetworkContainers;
   
+  // Ingress 네트워크 찾기
+  const ingressNetwork = networks.find(n => n.name === 'ingress') || {
+    id: 'network-ingress',
+    name: 'ingress',
+    driver: 'overlay',
+    scope: 'swarm',
+    networkInfo: {}
+  };
+  
+  // gwbridge에서 ingress로의 연결 정보를 저장할 배열
+  const ingressToGwbridgeHandles: IngressToGwbridgeHandleInfo[] = [];
+  
   // 4. Overlay 네트워크 배치
   // 실제 배치할 네트워크 필터링 및 정렬
   const networksToPlace = [...overlayNetworks]
@@ -289,10 +302,19 @@ export const calculateLayout = (
     
     const containerHandles = overlayNetworkContainers[networkId] || [];
     
-    const networkWithHandles: NetworkData = {
+    // 기본 네트워크 데이터
+    let networkWithHandles: NetworkData = {
       ...network,
       containerHandles: containerHandles
     };
+    
+    // ingress 네트워크인 경우 향후 gwbridge 연결 핸들 정보 배열 추가
+    if (network.name === 'ingress') {
+      networkWithHandles = {
+        ...networkWithHandles,
+        ingressToGwbridgeHandles: [] // 여기에 gwbridge 연결 정보 추가 (나중에 업데이트)
+      };
+    }
     
     const overlayY = layoutInfo.layerYPositions.overlay + 
       index * (layoutConfig.overlayNetworkHeight + layoutConfig.layerGap);
@@ -336,10 +358,29 @@ export const calculateLayout = (
         xPosition: info.xOffset
       }));
     
+    // ingress 네트워크와의 연결을 위한 핸들 위치 계산 (오른쪽 끝에서 10px 떨어진 위치)
+    // 절대 x 좌표가 아닌 상대적 위치 (0~1 사이의 값) 계산
+    const handleXPosition = (nodeWidth - 10) / nodeWidth; // 오른쪽 끝에서 10px 위치의 상대적 비율
+    
+    // IngressToGwbridgeHandleInfo 정보 추가 - gwbridge에서 ingress로 연결할 핸들
+    const ingressToGwbridgeHandle: IngressToGwbridgeHandleInfo = {
+      networkId: ingressNetwork.id,
+      xPosition: handleXPosition // 상대적 위치 (0~1)
+    };
+    
+    // ingress 네트워크에서 gwbridge로 연결할 핸들 정보 추가
+    // 전체 레이아웃 내에서의 상대적 위치 (0~1) 계산
+    const gwbridgeXPositionInLayout = (nodeX + nodeWidth - 10 - layoutConfig.startX) / layoutInfo.totalWidth;
+    ingressToGwbridgeHandles.push({
+      networkId: gwbridgeId,
+      xPosition: gwbridgeXPositionInLayout // 전체 레이아웃 내 상대적 위치 (0~1)
+    });
+    
     const gwbridgeWithHandles: NetworkData = {
       ...gwbridgeNetwork,
       id: gwbridgeId,
-      containerHandles: connectedHandles
+      containerHandles: connectedHandles,
+      ingressToGwbridgeHandles: [ingressToGwbridgeHandle]
     };
     
     nodes.push({
@@ -355,6 +396,20 @@ export const calculateLayout = (
         height: layoutConfig.gwbridgeNetworkHeight 
       }
     });
+  }
+  
+  // ingress 네트워크 노드 찾기
+  const ingressNode = nodes.find(node => 
+    node.type === 'networkNode' && node.data.name === 'ingress'
+  );
+  
+  // ingress 네트워크 노드가 있으면 gwbridge 연결 정보 추가
+  if (ingressNode) {
+    // 기존 ingressNode 데이터에 핸들 정보 추가
+    ingressNode.data = {
+      ...ingressNode.data,
+      ingressToGwbridgeHandles: ingressToGwbridgeHandles
+    };
   }
   
   // 6. 노드 배치
