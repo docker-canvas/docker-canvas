@@ -78,7 +78,9 @@ const DataInitializer: React.FC = () => {
       });
       
       // 컨테이너 데이터 처리 및 노드에 할당
-      const containers = tasksData.map((task: any) => ({
+      const containers = tasksData
+      .filter((task: any) => task.Status.State !== 'shutdown')
+      .map((task: any) => ({
         id: task.ID,
         nodeId: task.NodeID,
         serviceName: task.ServiceID,
@@ -92,6 +94,8 @@ const DataInitializer: React.FC = () => {
         })) || [],
         createdAt: task.CreatedAt
       }));
+
+
       
       nodes.forEach(node => {
         node.containers = containers.filter((container: ContainerData) => container.nodeId === node.id);

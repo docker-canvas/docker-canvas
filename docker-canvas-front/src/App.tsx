@@ -19,7 +19,7 @@ const App: React.FC = () => {
     <div className="App">
       {/* Docker 인프라 데이터를 관리하는 Context Provider */}
       <DockerProvider>
-        <LocalDataInitializer></LocalDataInitializer>
+        <DataInitializer></DataInitializer>
         <MainLayout>
         </MainLayout>
       </DockerProvider>
