@@ -50,8 +50,17 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
     }
   };
 
-  // 컨테이너 ID를 짧게 표시 (처음 12자리만)
-  const shortId = data.id.substring(0, 12);
+  // 컨테이너 ID를 짧게 표시 (처음 8자리만)
+  const shortId = data.id.substring(0, 10);
+
+  // 서비스 이름에 말줄임표 적용 (10자 이상이면 자르고 ... 추가)
+  const displayName = data.serviceName 
+    ? (data.serviceName.length > 10 
+      ? `${data.serviceName.substring(0, 10)}...` 
+      : data.serviceName)
+    : shortId;
+
+
   
   // 컨테이너가 연결되는 네트워크 타입 분류
   const overlayNetworks = data.networks.filter(network => network.driver === 'overlay');
@@ -179,7 +188,7 @@ const Container: React.FC<ContainerProps> = ({ data, isSelected = false }) => {
       {/* 컴포넌트 타입 표시와 상태 표시 (오른쪽에 통합) */}
       <div className="absolute bottom-1 right-1 text-xs bg-gray-800 bg-opacity-80 px-2 py-1 rounded-md flex items-center" style={{ fontSize: '0.7rem' }}>
         <span className={`inline-block w-3 h-3 rounded-full mr-1.5 ${getStatusColor()}`}></span>
-        <span className="font-medium text-white">{data.serviceName}</span>
+        <span className="font-medium text-white">{displayName}</span>
       </div>
     </div>
   );

@@ -23,11 +23,21 @@ const DataInitializer: React.FC = () => {
       const tasksResponse = await fetch('/docker/tasks');
       const tasksData = await tasksResponse.json();
       
+      // 서비스 데이터 가져오기 (추가된 부분)
+      const servicesResponse = await fetch('/docker/services');
+      const servicesData = await servicesResponse.json();
+      
+      // 서비스 ID를 키로, 서비스 이름을 값으로 하는 맵 생성
+      const serviceNameMap = new Map();
+      servicesData.forEach((service: any) => {
+        serviceNameMap.set(service.ID, service.Spec.Name);
+      });
+      
       // 네트워크 데이터 가져오기
       const networksResponse = await fetch('/docker/networks');
       const networksData = await networksResponse.json();
       
-      // 노드 데이터 형식 변환
+      // 노드 데이터 형식 변환 (기존 코드 유지)
       const nodes: NodeData[] = nodesData.map((node: any) => {
         // 플랫폼 정보 추출
         const platform: PlatformInfo = {};
@@ -77,31 +87,35 @@ const DataInitializer: React.FC = () => {
         };
       });
       
-      // 컨테이너 데이터 처리 및 노드에 할당
+      // 컨테이너 데이터 처리 및 노드에 할당 (서비스 이름 추가)
       const containers = tasksData
       .filter((task: any) => task.Status.State !== 'shutdown' && task.Status.State !== 'failed')
-      .map((task: any) => ({
-        id: task.ID,
-        nodeId: task.NodeID,
-        serviceName: task.ServiceID,
-        image: task.Spec.ContainerSpec.Image,
-        status: task.Status.State,
-        networks: task.NetworksAttachments?.map((network: any) => ({
-          id: network.Network.ID,
-          name: network.Network.Spec.Name,
-          driver: network.Network.DriverState.Name,
-          ipAddress: network.Addresses?.[0]
-        })) || [],
-        createdAt: task.CreatedAt
-      }));
-
-
+      .map((task: any) => {
+        // 서비스 ID로 서비스 이름 찾기
+        const serviceName = serviceNameMap.get(task.ServiceID) || task.ServiceID;
+        
+        return {
+          id: task.ID,
+          nodeId: task.NodeID,
+          serviceName: serviceName, // 서비스 이름으로 설정
+          serviceId: task.ServiceID, // 서비스 ID도 함께 저장 (필요 시)
+          image: task.Spec.ContainerSpec.Image,
+          status: task.Status.State,
+          networks: task.NetworksAttachments?.map((network: any) => ({
+            id: network.Network.ID,
+            name: network.Network.Spec.Name,
+            driver: network.Network.DriverState.Name,
+            ipAddress: network.Addresses?.[0]
+          })) || [],
+          createdAt: task.CreatedAt
+        };
+      });
       
       nodes.forEach(node => {
         node.containers = containers.filter((container: ContainerData) => container.nodeId === node.id);
       });
       
-      // 네트워크 데이터 형식 변환
+      // 네트워크 데이터 형식 변환 (기존 코드 유지)
       const networks: NetworkData[] = networksData
         .filter((network: any) => network.Scope === 'swarm')
         .map((network: any) => ({
