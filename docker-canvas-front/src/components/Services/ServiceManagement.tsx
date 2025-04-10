@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ServiceCreate from './ServiceCreate';
+import DeleteService from './ServiceDelete';
 
 /**
  * 서비스 관리 컴포넌트
@@ -68,8 +69,8 @@ const ServiceManagement: React.FC<{
 
         {/* 선택된 관리 옵션에 따른 컨텐츠 렌더링 */}
         <div className="p-6">
+          {activeOption === 'delete' && <DeleteService onClose={onClose} /> }
           {activeOption === 'create' && <ServiceCreate onClose={onClose} />}
-          {activeOption === 'delete' && <div>서비스 삭제 기능 구현 예정</div>}
           {activeOption === 'manage' && <div>서비스 관리 기능 구현 예정</div>}
           {!activeOption && (
             <div className="text-center text-gray-500 py-8">
