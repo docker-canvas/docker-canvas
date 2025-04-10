@@ -78,7 +78,9 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
     if (data.driver === 'bridge' || data.name.includes('gwbridge')) {
       const handles = [];
       
-      // 하단 핸들 추가 (Node와 연결용)
+      // 하단 핸들 추가 (Node와 연결용) - 계산된 위치에 배치
+      const nodeConnectionPosition = data.nodeToGwbridgeHandle?.position || 0.5; // 기본값 0.5
+      
       handles.push(
         <Handle
           key="gwbridge-in"
@@ -89,10 +91,11 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
             background: '#63B3ED', 
             width: '8px', 
             height: '8px',
-            left: '50%' 
+            left: `${nodeConnectionPosition * 100}%`, // 계산된 비율로 위치 설정
           }}
         />
       );
+      
       
       // IngressToGwbridgeHandleInfo가 있는 경우 ingress 연결용 핸들 추가
       if (data.ingressToGwbridgeHandles) {

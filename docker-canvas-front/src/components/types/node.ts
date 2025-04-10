@@ -67,7 +67,9 @@ export interface NodeData {
   engineInfo?: EngineInfo;            // 엔진 정보
   addr?: string;                      // 노드 IP 주소
   managerStatus?: ManagerStatus;      // 매니저 상태 (매니저 노드만)
+  
   overlayHandles?: NodeOverlayHandleInfo[];
+  gwbridgeConnectionPosition?: number; // gwbridge로의 연결 위치 (0~1)
 }
 
 // Node 위치 및 크기 정보를 정의하는 인터페이스

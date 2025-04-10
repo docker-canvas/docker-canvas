@@ -87,8 +87,10 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
   // 상단 핸들 렌더링 - GWBridge 연결용 핸들 추가
   const renderTopHandles = () => {
     const handles = [];
-
-    // GWBridge 연결용 핸들 (기존 코드)
+  
+    // GWBridge 연결용 핸들 - 계산된 위치에 배치
+    const gwbridgeConnectionPosition = data.gwbridgeConnectionPosition || 0.5; // 기본값 0.5
+    
     handles.push(
       <Handle
         key="gwbridge-out"
@@ -99,11 +101,11 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
           background: '#90CDF4', 
           width: '8px', 
           height: '8px',
-          left: '50%' // 중앙 정렬
+          left: `${gwbridgeConnectionPosition * 100}%`, // 계산된 비율로 위치 설정
         }}
       />
     );
-
+    
     // Overlay 네트워크 연결용 핸들 추가
     if (data.overlayHandles && data.overlayHandles.length > 0) {
       data.overlayHandles.forEach((handle, idx) => {

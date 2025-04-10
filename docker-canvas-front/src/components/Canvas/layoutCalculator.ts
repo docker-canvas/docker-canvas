@@ -415,12 +415,14 @@ export const calculateLayout = (
       }
     });
   });
-  
-  // 9. 각 노드별 GWBridge 네트워크 배치
+
+  // 9. 각 노드별 GWBridge 네트워크 배치 부분
+
   for (let i = 0; i < sortedNodes.length; i++) {
     const nodeId = sortedNodes[i].id;
     const nodeX = layoutInfo.nodePositions[nodeId].x;
-    const gwbridgeWidth = layoutInfo.gwbridgeWidths[nodeId]; // GWBridge 너비는 노드 기본 너비와 같음
+    const gwbridgeWidth = layoutInfo.gwbridgeWidths[nodeId];
+    const expandedNodeWidth = layoutInfo.nodeExpandedWidths[nodeId] || layoutInfo.nodeWidths[nodeId];
     
     const gwbridgeId = `network-gwbridge-${nodeId}`;
     
@@ -433,6 +435,20 @@ export const calculateLayout = (
       createdAt: new Date().toISOString()
     };
     
+    // 노드에서의 연결 위치를 노드의 확장된 너비를 기준으로 계산
+    // gwbridge는 기본 노드 너비와 같으므로, 정확한 위치 매핑이 필요
+    const nodeToBridgePosition = gwbridgeWidth / 2; // gwbridge의 중앙 좌표
+    const nodeConnectionRatio = nodeToBridgePosition / expandedNodeWidth; // 노드 너비 기준 비율
+    
+    // nodeToGwbridgeHandle 정보 생성
+    const nodeToGwbridgeHandle = {
+      position: nodeConnectionRatio // 0~1 사이 값 (노드 내 상대적 위치)
+    };
+    
+    // 여기서 gwbridge 쪽의 핸들 위치도 같은 방식으로 계산
+    const gwbridgeToNodePosition = 0.5; // gwbridge의 정중앙 (0.5)
+    
+    // 나머지 코드는 그대로 유지
     const connectedHandles: ContainerHandleInfo[] = Object.values(layoutInfo.containerToGWBridge)
       .filter(info => info.gwbridgeId === gwbridgeId)
       .map(info => ({
@@ -440,29 +456,23 @@ export const calculateLayout = (
         xPosition: info.xOffset
       }));
     
-    // ingress 네트워크와의 연결을 위한 핸들 위치 계산 (오른쪽 끝에서 10px 떨어진 위치)
-    // 절대 x 좌표가 아닌 상대적 위치 (0~1 사이의 값) 계산
-    const handleXPosition = (gwbridgeWidth - 15) / gwbridgeWidth; // 오른쪽 끝에서 10px 위치의 상대적 비율
+    // ingress 네트워크와의 연결을 위한 핸들 위치 계산
+    const handleXPosition = (gwbridgeWidth - 15) / gwbridgeWidth;
     
-    // IngressToGwbridgeHandleInfo 정보 추가 - gwbridge에서 ingress로 연결할 핸들
     const ingressToGwbridgeHandle = {
       networkId: ingressNetwork.id,
-      xPosition: handleXPosition // 상대적 위치 (0~1)
+      xPosition: handleXPosition
     };
-    
-    // ingress 네트워크에서 gwbridge로 연결할 핸들 정보 추가
-    // 전체 레이아웃 내에서의 상대적 위치 (0~1) 계산
-    const gwbridgeXPositionInLayout = (nodeX + gwbridgeWidth - 15 - layoutConfig.startX) / layoutInfo.totalWidth;
-    ingressToGwbridgeHandles.push({
-      networkId: gwbridgeId,
-      xPosition: gwbridgeXPositionInLayout // 전체 레이아웃 내 상대적 위치 (0~1)
-    });
     
     const gwbridgeWithHandles: NetworkData = {
       ...gwbridgeNetwork,
       id: gwbridgeId,
       containerHandles: connectedHandles,
-      ingressToGwbridgeHandles: [ingressToGwbridgeHandle]
+      ingressToGwbridgeHandles: [ingressToGwbridgeHandle],
+      nodeToGwbridgeHandle: {
+        position: gwbridgeToNodePosition,
+        nodeConnectionPosition: nodeConnectionRatio // 노드 쪽 연결 위치 정보도 저장
+      }
     };
     
     nodes.push({
@@ -474,10 +484,16 @@ export const calculateLayout = (
       },
       data: gwbridgeWithHandles,
       style: { 
-        width: gwbridgeWidth, // GWBridge의 너비는 노드 기본 너비와 동일
+        width: gwbridgeWidth,
         height: layoutConfig.gwbridgeNetworkHeight 
       }
     });
+    
+    // 노드 데이터에도 gwbridge 연결 정보 저장
+    // 해당 노드 객체 찾기
+    const nodeData = sortedNodes[i];
+    // 노드 데이터에 gwbridgeConnectionPosition 추가
+    nodeData.gwbridgeConnectionPosition = nodeConnectionRatio;
   }
   
   // 10. ingress 네트워크 노드 찾기 및 업데이트
