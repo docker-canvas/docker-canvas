@@ -125,33 +125,34 @@ export const calculateEdges = (
       });
     }
     
-    // 규칙 4: GWBridge와 Ingress 네트워크 연결
+      // 규칙 4: GWBridge와 Ingress 네트워크 연결
     const ingressNetwork = layoutedNodes.find(
       node => node.type === 'networkNode' && node.data.name === 'ingress'
     );
-    
+
     if (ingressNetwork) {
       // 각 gwbridge 네트워크와 ingress 네트워크 간 연결
       gwbridgeNetworks.forEach(gwbridge => {
         // gwbridge의 ingressToGwbridgeHandles 정보 확인
         if (gwbridge.data.ingressToGwbridgeHandles && gwbridge.data.ingressToGwbridgeHandles.length > 0) {
-          // gwbridge에서 ingress로 엣지 생성
-          edges.push({
-            id: `edge-${gwbridge.id}-to-${ingressNetwork.id}`,
-            source: gwbridge.id,
-            target: ingressNetwork.id,
-            sourceHandle: 'ingress-out',    // GWBridge 네트워크의 상단 핸들
-            targetHandle: `gwbridge-in-${gwbridge.id}`,  // Ingress 네트워크의 하단 핸들
-            type: 'swarmEdge',
-            data: {
-              edgeType: 'ingress' as SwarmEdgeType,
-              label: 'Ingress'
-            }
+          // 각 gwbridge는 고유한 핸들 ID를 사용하여 ingress와 연결
+          gwbridge.data.ingressToGwbridgeHandles.forEach((handle:any, idx: any) => {
+            edges.push({
+              id: `edge-${gwbridge.id}-to-${ingressNetwork.id}-${idx}`, // 고유한 엣지 ID 생성
+              source: gwbridge.id,
+              target: ingressNetwork.id,
+              sourceHandle: `ingress-out-${gwbridge.id}`, // 고유한 핸들 ID 사용 - gwbridge ID로 구분
+              targetHandle: `gwbridge-in-${gwbridge.id}`, // 고유한 핸들 ID 사용 - gwbridge ID로 구분
+              type: 'swarmEdge',
+              data: {
+                edgeType: 'ingress' as SwarmEdgeType,
+                label: 'Ingress'
+              }
+            });
           });
         }
       });
     }
-
     
   // 규칙 5: 노드와 Overlay 네트워크 연결
   overlayNetworks.forEach(overlayNetwork => {

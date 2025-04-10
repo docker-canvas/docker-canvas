@@ -96,24 +96,26 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
         />
       );
       
-      
       // IngressToGwbridgeHandleInfo가 있는 경우 ingress 연결용 핸들 추가
-      if (data.ingressToGwbridgeHandles) {
-        handles.push(
-          <Handle
-            key="ingress-out"
-            type="source"
-            position={Position.Top}
-            id="ingress-out"
-            style={{ 
-              background: '#ED8936', // ingress 색상과 맞춤
-              width: '8px', 
-              height: '8px',
-              left: `${data.ingressToGwbridgeHandles[0].xPosition * 100}%`, // 상대적 위치를 백분율로 변환
-              cursor: 'pointer'
-            }}
-          />
-        );
+      if (data.ingressToGwbridgeHandles && data.ingressToGwbridgeHandles.length > 0) {
+        // 이 부분이 문제: 각 gwbridge 핸들마다 고유한 ID를 가진 별도의 핸들 생성
+        data.ingressToGwbridgeHandles.forEach((handle, idx) => {
+          handles.push(
+            <Handle
+              key={`ingress-out-${idx}`}
+              type="source"
+              position={Position.Top}
+              id={`ingress-out-${handle.networkId}`} // 고유한 ID 지정 - 이전에는 모든 핸들이 같은 ID를 사용
+              style={{ 
+                background: '#ED8936', // ingress 색상과 맞춤
+                width: '8px', 
+                height: '8px',
+                left: `${handle.xPosition * 100}%`, // 상대적 위치를 백분율로 변환
+                cursor: 'pointer'
+              }}
+            />
+          );
+        });
       }
       
       return handles;
@@ -124,6 +126,7 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
       const handles:any = [];
       
       // Ingress 네트워크인 경우 gwbridge 연결용 핸들 추가
+      console.log(data.ingressToGwbridgeHandles)
       if (data.name === 'ingress' && data.ingressToGwbridgeHandles && data.ingressToGwbridgeHandles.length > 0) {
         // 각 gwbridge와 연결될 핸들 추가 - 이미 상대적 위치로 계산됨
         data.ingressToGwbridgeHandles.forEach((handle, idx) => {

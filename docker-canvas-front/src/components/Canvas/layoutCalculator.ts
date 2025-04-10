@@ -418,98 +418,105 @@ export const calculateLayout = (
 
   // 9. 각 노드별 GWBridge 네트워크 배치 부분
 
-  for (let i = 0; i < sortedNodes.length; i++) {
-    const nodeId = sortedNodes[i].id;
-    const nodeX = layoutInfo.nodePositions[nodeId].x;
-    const gwbridgeWidth = layoutInfo.gwbridgeWidths[nodeId];
-    const expandedNodeWidth = layoutInfo.nodeExpandedWidths[nodeId] || layoutInfo.nodeWidths[nodeId];
-    
-    const gwbridgeId = `network-gwbridge-${nodeId}`;
-    
-    const gwbridgeNetwork: NetworkData = {
-      id: gwbridgeId,
-      name: 'docker_gwbridge',
-      driver: 'bridge',
-      scope: 'local',
-      networkInfo: {},
-      createdAt: new Date().toISOString()
-    };
-    
-    // 노드에서의 연결 위치를 노드의 확장된 너비를 기준으로 계산
-    // gwbridge는 기본 노드 너비와 같으므로, 정확한 위치 매핑이 필요
-    const nodeToBridgePosition = gwbridgeWidth / 2; // gwbridge의 중앙 좌표
-    const nodeConnectionRatio = nodeToBridgePosition / expandedNodeWidth; // 노드 너비 기준 비율
-    
-    // nodeToGwbridgeHandle 정보 생성
-    const nodeToGwbridgeHandle = {
-      position: nodeConnectionRatio // 0~1 사이 값 (노드 내 상대적 위치)
-    };
-    
-    // 여기서 gwbridge 쪽의 핸들 위치도 같은 방식으로 계산
-    const gwbridgeToNodePosition = 0.5; // gwbridge의 정중앙 (0.5)
-    
-    // 나머지 코드는 그대로 유지
-    const connectedHandles: ContainerHandleInfo[] = Object.values(layoutInfo.containerToGWBridge)
-      .filter(info => info.gwbridgeId === gwbridgeId)
-      .map(info => ({
-        containerId: info.containerId,
-        xPosition: info.xOffset
-      }));
-    
-    // ingress 네트워크와의 연결을 위한 핸들 위치 계산
-    const handleXPosition = (gwbridgeWidth - 15) / gwbridgeWidth;
-    
-    const ingressToGwbridgeHandle = {
-      networkId: ingressNetwork.id,
+for (let i = 0; i < sortedNodes.length; i++) {
+  const nodeId = sortedNodes[i].id;
+  const nodeX = layoutInfo.nodePositions[nodeId].x;
+  const gwbridgeWidth = layoutInfo.gwbridgeWidths[nodeId];
+  const expandedNodeWidth = layoutInfo.nodeExpandedWidths[nodeId] || layoutInfo.nodeWidths[nodeId];
+  
+  const gwbridgeId = `network-gwbridge-${nodeId}`;
+  
+  const gwbridgeNetwork: NetworkData = {
+    id: gwbridgeId,
+    name: 'docker_gwbridge',
+    driver: 'bridge',
+    scope: 'local',
+    networkInfo: {},
+    createdAt: new Date().toISOString()
+  };
+  
+  // 노드에서의 연결 위치를 노드의 확장된 너비를 기준으로 계산
+  // gwbridge는 기본 노드 너비와 같으므로, 정확한 위치 매핑이 필요
+  const nodeToBridgePosition = gwbridgeWidth / 2; // gwbridge의 중앙 좌표
+  const nodeConnectionRatio = nodeToBridgePosition / expandedNodeWidth; // 노드 너비 기준 비율
+  
+  // nodeToGwbridgeHandle 정보 생성
+  const nodeToGwbridgeHandle = {
+    position: nodeConnectionRatio // 0~1 사이 값 (노드 내 상대적 위치)
+  };
+  
+  // 여기서 gwbridge 쪽의 핸들 위치도 같은 방식으로 계산
+  const gwbridgeToNodePosition = 0.5; // gwbridge의 정중앙 (0.5)
+  
+  // 나머지 코드는 그대로 유지
+  const connectedHandles: ContainerHandleInfo[] = Object.values(layoutInfo.containerToGWBridge)
+    .filter(info => info.gwbridgeId === gwbridgeId)
+    .map(info => ({
+      containerId: info.containerId,
+      xPosition: info.xOffset
+    }));
+  
+  // ingress 네트워크와의 연결을 위한 핸들 위치 계산
+  const handleXPosition = (gwbridgeWidth - 15) / gwbridgeWidth;
+
+  // ingress에 표시될 핸들 정보를 배열에 추가
+  // 여기에 총 네트워크 너비를 기준으로 상대적 위치를 계산
+  const relativeXPositionInNetwork = (nodeX + gwbridgeWidth * handleXPosition - layoutConfig.startX) / layoutInfo.totalWidth;
+  
+  // 전체 ingress 네트워크에서의 상대적 위치를 계산하여 추가
+  ingressToGwbridgeHandles.push({
+    networkId: gwbridgeId,
+    xPosition: relativeXPositionInNetwork // 전체 네트워크 폭 기준 상대 위치
+  });
+
+  const gwbridgeWithHandles: NetworkData = {
+    ...gwbridgeNetwork,
+    id: gwbridgeId,
+    containerHandles: connectedHandles,
+    ingressToGwbridgeHandles: [{ 
+      networkId: 'network-ingress', // ingress 네트워크를 가리킴
       xPosition: handleXPosition
-    };
-    
-    const gwbridgeWithHandles: NetworkData = {
-      ...gwbridgeNetwork,
-      id: gwbridgeId,
-      containerHandles: connectedHandles,
-      ingressToGwbridgeHandles: [ingressToGwbridgeHandle],
-      nodeToGwbridgeHandle: {
-        position: gwbridgeToNodePosition,
-        nodeConnectionPosition: nodeConnectionRatio // 노드 쪽 연결 위치 정보도 저장
-      }
-    };
-    
-    nodes.push({
-      id: gwbridgeId,
-      type: 'networkNode',
-      position: { 
-        x: nodeX, 
-        y: layoutInfo.layerYPositions.gwbridge
-      },
-      data: gwbridgeWithHandles,
-      style: { 
-        width: gwbridgeWidth,
-        height: layoutConfig.gwbridgeNetworkHeight 
-      }
-    });
-    
-    // 노드 데이터에도 gwbridge 연결 정보 저장
-    // 해당 노드 객체 찾기
-    const nodeData = sortedNodes[i];
-    // 노드 데이터에 gwbridgeConnectionPosition 추가
-    nodeData.gwbridgeConnectionPosition = nodeConnectionRatio;
-  }
+    }],
+    nodeToGwbridgeHandle: {
+      position: gwbridgeToNodePosition,
+      nodeConnectionPosition: nodeConnectionRatio
+    }
+  };
   
-  // 10. ingress 네트워크 노드 찾기 및 업데이트
-  const ingressNode = nodes.find(node => 
-    node.type === 'networkNode' && node.data.name === 'ingress'
-  );
+  nodes.push({
+    id: gwbridgeId,
+    type: 'networkNode',
+    position: { 
+      x: nodeX, 
+      y: layoutInfo.layerYPositions.gwbridge
+    },
+    data: gwbridgeWithHandles,
+    style: { 
+      width: gwbridgeWidth,
+      height: layoutConfig.gwbridgeNetworkHeight 
+    }
+  });
   
-  // ingress 네트워크 노드가 있으면 gwbridge 연결 정보 추가
-  if (ingressNode) {
-    // 기존 ingressNode 데이터에 핸들 정보 추가
-    ingressNode.data = {
-      ...ingressNode.data,
-      ingressToGwbridgeHandles: ingressToGwbridgeHandles
-    };
-  }
+  // 노드 데이터에도 gwbridge 연결 정보 저장
+  const nodeData = sortedNodes[i];
+  nodeData.gwbridgeConnectionPosition = nodeConnectionRatio;
+}
+
+// 10. ingress 네트워크 노드 찾기 및 업데이트
+const ingressNode = nodes.find(node => 
+  node.type === 'networkNode' && node.data.name === 'ingress'
+);
+
+// ingress 네트워크 노드가 있으면 gwbridge 연결 정보 추가
+if (ingressNode) {
+  console.log("Ingress 노드를 찾았습니다. 핸들 추가:", ingressToGwbridgeHandles.length, "개");
   
+  // 기존 ingressNode 데이터에 핸들 정보 추가
+  ingressNode.data = {
+    ...ingressNode.data,
+    ingressToGwbridgeHandles: ingressToGwbridgeHandles // 수집한 모든 핸들 정보 설정
+  };
+}
   // 11. 노드 배치
   sortedNodes.forEach((node) => {
     const nodeId = node.id;
