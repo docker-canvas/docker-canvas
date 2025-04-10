@@ -126,6 +126,26 @@ export const calculateLayout = (
     n.driver === 'overlay'
   );
 
+  // 실제 배치할 네트워크 필터링 및 정렬
+  const networksToPlace = [...overlayNetworks]
+    // 연결된 컨테이너가 없는 네트워크는 제외
+    // 정렬 적용
+    .sort((a, b) => {
+      // Ingress 네트워크가 컨테이너와 가장 가까운 곳에 배치되도록 함
+      if (a.name === 'ingress') return 1;
+      if (b.name === 'ingress') return -1;
+
+      const aId = a.id;
+      const bId = b.id;
+      
+      // 연결된 컨테이너가 있는 네트워크 우선 배치
+      const aConnections = (overlayNetworkContainers[aId]?.length || 0) + 
+                         (overlayNetworkToNodes[aId]?.length || 0);
+      const bConnections = (overlayNetworkContainers[bId]?.length || 0) + 
+                         (overlayNetworkToNodes[bId]?.length || 0);
+      
+      return bConnections - aConnections;
+    });
 
   // 1. 각 노드의 기본 너비 계산 (컨테이너 기반)
   sortedNodes.forEach((node, index) => {
@@ -150,15 +170,10 @@ export const calculateLayout = (
     const nodeId = node.id;
     const nodeWidth = layoutInfo.nodeWidths[nodeId];
     
-    // 연결할 overlay 네트워크 필터링 (gwbridge 제외)
-    const connectedOverlays = overlayNetworks.filter(network => 
-      network.name !== 'docker_gwbridge' && !network.name.includes('gwbridge')
-    );
-    
     // 노드당 연결할 overlay 네트워크 핸들 위치 계산
-    if (connectedOverlays.length > 0) {
+    if (networksToPlace.length > 0) {
       const handleSpacing = 30; // 핸들 간 간격 (px)
-      const totalHandleWidth = connectedOverlays.length * handleSpacing;
+      const totalHandleWidth = networksToPlace.length * handleSpacing;
       
       // 노드 확장 폭 조정 (overlay 네트워크 연결을 위한 공간 확보)
       const expandedNodeWidth = nodeWidth + totalHandleWidth;
@@ -169,7 +184,7 @@ export const calculateLayout = (
       const nodeOverlayHandles: { networkId: string; xPosition: number }[] = [];
       
       // 각 overlay 네트워크에 대한 핸들 위치 계산
-      connectedOverlays.forEach((network, idx) => {
+      networksToPlace.forEach((network, idx) => {
         // 핸들 위치: 노드 오른쪽에서부터 일정 간격으로 배치
         const handleXPosition = 1 - ((idx + 1) * handleSpacing / expandedNodeWidth);
         
@@ -360,32 +375,6 @@ export const calculateLayout = (
   const ingressToGwbridgeHandles: IngressToGwbridgeHandleInfo[] = [];
   
   // 8. Overlay 네트워크 배치
-  // 실제 배치할 네트워크 필터링 및 정렬
-  const networksToPlace = [...overlayNetworks]
-    // 연결된 컨테이너가 없는 네트워크는 제외
-    .filter(network => {
-      const networkId = network.id;
-      const connections = overlayNetworkContainers[networkId]?.length || 0;
-      const nodeConnections = overlayNetworkToNodes[networkId]?.length || 0;
-      return connections > 0 || nodeConnections > 0 || network.name === 'ingress'; // ingress는 항상 포함
-    })
-    // 정렬 적용
-    .sort((a, b) => {
-      // Ingress 네트워크가 컨테이너와 가장 가까운 곳에 배치되도록 함
-      if (a.name === 'ingress') return 1;
-      if (b.name === 'ingress') return -1;
-
-      const aId = a.id;
-      const bId = b.id;
-      
-      // 연결된 컨테이너가 있는 네트워크 우선 배치
-      const aConnections = (overlayNetworkContainers[aId]?.length || 0) + 
-                         (overlayNetworkToNodes[aId]?.length || 0);
-      const bConnections = (overlayNetworkContainers[bId]?.length || 0) + 
-                         (overlayNetworkToNodes[bId]?.length || 0);
-      
-      return bConnections - aConnections;
-    });
 
   // Overlay 네트워크 배치
   networksToPlace.forEach((network, index) => {
