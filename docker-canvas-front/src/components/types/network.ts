@@ -29,6 +29,11 @@ export interface ContainerHandleInfo {
   xPosition: number;     // 핸들 X 좌표의 상대적 위치 (0~1 사이 값)
 }
 
+export interface NetworkToNodeHandleInfo {
+  nodeId: string;     // 연결된 노드 ID
+  xPosition: number;  // 핸들 X 좌표의 상대적 위치 (0~1 사이 값)
+}
+
 // 네트워크 데이터 인터페이스 정의
 export interface NetworkData {
   id: string;                       // 네트워크 ID
@@ -42,6 +47,7 @@ export interface NetworkData {
   createdAt?: string;               // 생성 일시
   containerHandles?: ContainerHandleInfo[];  // 컨테이너 핸들 정보 - 레이아웃 계산기에서 설정
   ingressToGwbridgeHandles?: IngressToGwbridgeHandleInfo[];
+  nodeHandles?: NetworkToNodeHandleInfo[];
 }
 
 // 네트워크 위치 및 크기 정보를 정의하는 인터페이스

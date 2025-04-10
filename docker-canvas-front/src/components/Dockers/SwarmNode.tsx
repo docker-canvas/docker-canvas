@@ -86,8 +86,12 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
   
   // 상단 핸들 렌더링 - GWBridge 연결용 핸들 추가
   const renderTopHandles = () => {
-    return (
+    const handles = [];
+
+    // GWBridge 연결용 핸들 (기존 코드)
+    handles.push(
       <Handle
+        key="gwbridge-out"
         type="source"
         position={Position.Top}
         id="gwbridge-out"
@@ -99,6 +103,28 @@ const SwarmNode: React.FC<SwarmNodeProps> = ({ data, selected = false }) => { //
         }}
       />
     );
+
+    // Overlay 네트워크 연결용 핸들 추가
+    if (data.overlayHandles && data.overlayHandles.length > 0) {
+      data.overlayHandles.forEach((handle, idx) => {
+        handles.push(
+          <Handle
+            key={`overlay-out-${handle.networkId}`}
+            type="source"
+            position={Position.Top}
+            id={`overlay-out-${handle.networkId}`}
+            style={{ 
+              background: '#38B2AC', // Overlay 네트워크 색상과 맞춤
+              width: '8px', 
+              height: '8px',
+              left: `${handle.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+            }}
+          />
+        );
+      });
+    }
+
+    return handles;
   };
 
   // 하단 핸들은 필요 없음

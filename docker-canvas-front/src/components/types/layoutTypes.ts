@@ -51,12 +51,15 @@ export interface LayerYPositions {
  * 레이아웃 계산 결과를 저장하는 인터페이스
  */
 export interface NodeLayoutInfo {
-  nodeWidths: Record<string, number>;  // 노드 ID별 너비
+  nodeWidths: Record<string, number>;          // 노드 ID별 기본 너비 (컨테이너 기반)
+  nodeExpandedWidths: Record<string, number>; // 노드 ID별 확장 너비 (Overlay 연결 고려)
+  gwbridgeWidths: Record<string, number>;     // GWBridge 네트워크 ID별 너비 (노드 기본 너비와 동일)
   nodePositions: Record<string, NodePosition>;  // 노드 ID별 위치
   currentX: number;   // 현재 X 좌표 (배치 계산 중 사용)
   totalWidth: number;  // 전체 너비
   containerToGWBridge: Record<string, ContainerGWBridgeConnection>;  // 컨테이너-GWBridge 연결 정보
   containerToOverlay?: Record<string, ContainerOverlayConnection[]>;  // 컨테이너-Overlay 연결 정보
   overlayNetworkContainers?: Record<string, ContainerHandleInfo[]>;  // Overlay 네트워크별 연결된 컨테이너 정보
+  overlayNetworkToNodes?: Record<string, { nodeId: string; xPosition: number }[]>; // Overlay 네트워크별 연결된 노드 정보
   layerYPositions: LayerYPositions;  // 레이어별 Y 위치
 }

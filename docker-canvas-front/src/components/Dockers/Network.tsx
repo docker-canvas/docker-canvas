@@ -162,6 +162,25 @@ const Network: React.FC<NetworkProps> = ({ data, selected = false }) => {
         });
       }
       
+      if (data.nodeHandles && data.nodeHandles.length > 0) {
+        data.nodeHandles.forEach((handleInfo, index) => {
+          handles.push(
+            <Handle
+              key={`node-handle-${index}`}
+              type="target"
+              position={Position.Bottom}
+              id={`node-in-${handleInfo.nodeId}`}
+              style={{ 
+                background: '#2D5F5D', // 노드 색상과 맞춤
+                width: '8px', 
+                height: '8px',
+                left: `${handleInfo.xPosition * 100}%` // 상대적 위치를 백분율로 변환
+              }}
+            />
+          );
+        });
+      }
+      
       return handles;
     }
     

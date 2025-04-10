@@ -88,39 +88,8 @@ export const calculateEdges = (
           });
         }
       });
-      
-    
-    // 규칙 2: 컨테이너는 GWBridge 네트워크와 연결
-    // VXLAN 타입이므로 라벨 유지
-    // containerElements.forEach(container => {
-    //   const containerInfo = layoutInfo.containerToGWBridge[container.id];
-    //   if (!containerInfo) return;
-      
-    //   const matchingGWBridge = gwbridgeNetworks.find(network => 
-    //     network.id === containerInfo.gwbridgeId || 
-    //     (network.id.includes('gwbridge') && network.id.includes(containerInfo.gwbridgeId.split('-').slice(-1)[0]))
-    //   );
-      
-    //   if (matchingGWBridge) {
-    //     const targetHandleId = `handle-${container.id}`;
-        
-    //     edges.push({
-    //       id: `edge-${container.id}-to-${matchingGWBridge.id}`,
-    //       source: container.id,
-    //       target: matchingGWBridge.id,
-    //       sourceHandle: 'gwbridge-out',
-    //       targetHandle: targetHandleId,
-    //       type: 'swarmEdge',
-    //       data: {
-    //         edgeType: 'vxlan' as SwarmEdgeType,
-    //         label: 'VXLAN' // VXLAN 라벨 유지
-    //       }
-    //     });
-    //   }
-    // });
     
     // 규칙 3: 컨테이너는 Overlay 네트워크와 연결
-    // VXLAN이 아니므로 라벨 제거
     if (layoutInfo.containerToOverlay) {
       Object.values(layoutInfo.containerToOverlay).forEach(connections => {
         connections.forEach(connection => {
@@ -150,32 +119,29 @@ export const calculateEdges = (
             type: 'swarmEdge',
             data: {
               edgeType: 'ingress' as SwarmEdgeType,
-              // 라벨 제거
             }
           });
         });
       });
     }
     
-    // gwbridge와 ingress 네트워크 간 엣지 생성 로직
-
     // 규칙 4: GWBridge와 Ingress 네트워크 연결
-    // 이 규칙은 기존 규칙 후에 추가
     const ingressNetwork = layoutedNodes.find(
       node => node.type === 'networkNode' && node.data.name === 'ingress'
     );
-
-    if (ingressNetwork && ingressNetwork.data.ingressToGwbridgeHandles) {
-      ingressNetwork.data.ingressToGwbridgeHandles.forEach((handle : any) => {
-        const gwbridge = gwbridgeNetworks.find(net => net.id === handle.networkId);
-        
-        if (gwbridge && gwbridge.data.ingressToGwbridgeHandle) {
+    
+    if (ingressNetwork) {
+      // 각 gwbridge 네트워크와 ingress 네트워크 간 연결
+      gwbridgeNetworks.forEach(gwbridge => {
+        // gwbridge의 ingressToGwbridgeHandles 정보 확인
+        if (gwbridge.data.ingressToGwbridgeHandles && gwbridge.data.ingressToGwbridgeHandles.length > 0) {
+          // gwbridge에서 ingress로 엣지 생성
           edges.push({
             id: `edge-${gwbridge.id}-to-${ingressNetwork.id}`,
             source: gwbridge.id,
             target: ingressNetwork.id,
             sourceHandle: 'ingress-out',    // GWBridge 네트워크의 상단 핸들
-            targetHandle: `gwbridge-in-${handle.networkId}`,  // Ingress 네트워크의 하단 핸들
+            targetHandle: `gwbridge-in-${gwbridge.id}`,  // Ingress 네트워크의 하단 핸들
             type: 'swarmEdge',
             data: {
               edgeType: 'ingress' as SwarmEdgeType,
@@ -185,7 +151,39 @@ export const calculateEdges = (
         }
       });
     }
+
+    // 규칙 5: 노드와 Overlay 네트워크 연결
+    overlayNetworks.forEach(overlayNetwork => {
+      // overlayNetwork.data.nodeHandles 사용
+      if (overlayNetwork.data.nodeHandles && overlayNetwork.data.nodeHandles.length > 0) {
+        overlayNetwork.data.nodeHandles.forEach((handleInfo:any) => {
+          const nodeId = handleInfo.nodeId;
+          const nodeElement = swarmNodeElements.find(node => node.id === nodeId);
+          
+          if (nodeElement && nodeElement.data.overlayHandles) {
+            // 해당 오버레이 네트워크에 대한 노드 핸들 찾기
+            const matchingHandle = nodeElement.data.overlayHandles.find(
+              (h:any) => h.networkId === overlayNetwork.id
+            );
+            
+            if (matchingHandle) {
+              // 노드와 오버레이 네트워크 간 엣지 생성
+              edges.push({
+                id: `edge-${nodeId}-to-${overlayNetwork.id}`,
+                source: nodeId,
+                target: overlayNetwork.id,
+                sourceHandle: `overlay-out-${overlayNetwork.id}`,  // 노드의 해당 오버레이 네트워크용 핸들
+                targetHandle: `node-in-${nodeId}`,  // 오버레이 네트워크의 해당 노드용 핸들
+                type: 'swarmEdge',
+                data: {
+                  edgeType: 'default' as SwarmEdgeType
+                }
+              });
+            }
+          }
+        });
+      }
+    });
+  
     return edges;
   };
-
-  

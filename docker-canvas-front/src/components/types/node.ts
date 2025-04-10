@@ -43,6 +43,12 @@ export interface ManagerStatus {
   addr?: string;               // 관리자 주소
 }
 
+export interface NodeOverlayHandleInfo {
+  networkId: string;    // 연결된 오버레이 네트워크 ID
+  xPosition: number;     // 핸들 X 좌표의 상대적 위치 (0~1 사이 값)
+}
+
+
 // 노드 데이터 인터페이스 정의
 export interface NodeData {
   id: string;                         // 노드 고유 식별자
@@ -61,6 +67,7 @@ export interface NodeData {
   engineInfo?: EngineInfo;            // 엔진 정보
   addr?: string;                      // 노드 IP 주소
   managerStatus?: ManagerStatus;      // 매니저 상태 (매니저 노드만)
+  overlayHandles?: NodeOverlayHandleInfo[];
 }
 
 // Node 위치 및 크기 정보를 정의하는 인터페이스
