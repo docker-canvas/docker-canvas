@@ -8,7 +8,8 @@
 - docker hub에 이미지 배포
 
 ## 시연 영상
-
+사진을 클릭하면 영상이 링크로 이동합니다.
+[![docker-canvas 시연 영상](http://img.youtube.com/vi/Ekjn1hyIAfM/0.jpg)](https://www.youtube.com/watch?v=Ekjn1hyIAfM) 
 
 
 
