@@ -6,6 +6,10 @@
 - Docker API와 React를 활용하여 실제 인프라 구성을 시각화
 - 멀티 스테이지 빌드를 통해 효율적인 이미지 빌드
 - docker hub에 이미지 배포
+ 
+> docker swarm 클러스터가 구성된 환경에서 배포된 이미지를 실행하여 직접 시연하실 수 있습니다.
+> 
+> `docker run -d -v /var/run/docker.sock:/var/run/docker.sock -p 3000:3000 choicco89/docker-canvas:0.1.0`
 
 ## 시연 영상
 사진을 클릭하면 영상이 링크로 이동합니다.
